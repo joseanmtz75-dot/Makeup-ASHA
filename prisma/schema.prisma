@@ -1,0 +1,212 @@
+// Makeup ASHA — Schema Prisma
+// Single-tenant: todas las tablas pertenecen a ASHA implícitamente.
+// Fase 1 incluye: catálogo + clientas + compras directas + comprobantes + configuración.
+// Fase 2 (dinámicas) y Fase 3 (fidelización) se agregarán después.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================
+// CATÁLOGO
+// ============================================
+
+model Producto {
+  id           String              @id @default(cuid())
+  nombre       String
+  descripcion  String?
+  precio       Float
+  stock        Int                 @default(0)
+  categoria    CategoriaProducto
+  sku          String?             @unique
+  activo       Boolean             @default(true)
+  destacado    Boolean             @default(false)
+  creadoEn     DateTime            @default(now()) @map("creado_en")
+  actualizadoEn DateTime           @updatedAt @map("actualizado_en")
+
+  imagenes     ImagenProducto[]
+  compras      Compra[]
+
+  @@index([categoria])
+  @@index([activo])
+  @@map("productos")
+}
+
+model ImagenProducto {
+  id         String   @id @default(cuid())
+  productoId String   @map("producto_id")
+  url        String
+  orden      Int      @default(0)
+  creadoEn   DateTime @default(now()) @map("creado_en")
+
+  producto   Producto @relation(fields: [productoId], references: [id], onDelete: Cascade)
+
+  @@index([productoId])
+  @@map("imagenes_producto")
+}
+
+// ============================================
+// CLIENTAS
+// ============================================
+
+model Clienta {
+  id              String       @id @default(cuid())
+  telefono        String       @unique
+  nombre          String
+  email           String?
+  direccion       String?
+  municipio       Municipio?
+  referenciaDir   String?      @map("referencia_dir")
+  puntos          Int          @default(0)
+  nivelActual     NivelClienta @default(BRONCE) @map("nivel_actual")
+  referidaPorId   String?      @map("referida_por_id")
+  userId          String?      @unique @map("user_id") // Supabase auth user, opcional
+  notas           String?      // notas internas del admin
+  ultimaCompraEn  DateTime?    @map("ultima_compra_en")
+  creadaEn        DateTime     @default(now()) @map("creada_en")
+  actualizadaEn   DateTime     @updatedAt @map("actualizada_en")
+
+  referidaPor     Clienta?     @relation("Referidas", fields: [referidaPorId], references: [id])
+  referidas       Clienta[]    @relation("Referidas")
+  compras         Compra[]
+
+  @@index([telefono])
+  @@index([nivelActual])
+  @@map("clientas")
+}
+
+// ============================================
+// COMPRAS DIRECTAS DE CATÁLOGO
+// ============================================
+
+model Compra {
+  id                String        @id @default(cuid())
+  clientaId         String        @map("cliente_id")
+  productoId        String        @map("producto_id")
+  cantidad          Int
+  precioUnitario    Float         @map("precio_unitario")
+  total             Float
+  estatus           EstatusCompra @default(PENDIENTE)
+  comprobanteId     String?       @unique @map("comprobante_id")
+  direccionEntrega  String?       @map("direccion_entrega")
+  municipioEntrega  Municipio?    @map("municipio_entrega")
+  notasCliente      String?       @map("notas_cliente")
+  notasAdmin        String?       @map("notas_admin")
+  entregadaEn       DateTime?     @map("entregada_en")
+  canceladaEn       DateTime?     @map("cancelada_en")
+  creadaEn          DateTime      @default(now()) @map("creada_en")
+  actualizadaEn     DateTime      @updatedAt @map("actualizada_en")
+
+  clienta           Clienta       @relation(fields: [clientaId], references: [id])
+  producto          Producto      @relation(fields: [productoId], references: [id])
+  comprobante       Comprobante?  @relation(fields: [comprobanteId], references: [id])
+
+  @@index([clientaId])
+  @@index([productoId])
+  @@index([estatus])
+  @@map("compras")
+}
+
+// ============================================
+// COMPROBANTES DE PAGO
+// ============================================
+
+model Comprobante {
+  id              String              @id @default(cuid())
+  imagenUrl       String              @map("imagen_url") // path en bucket privado
+  monto           Float
+  metodoPago      MetodoPago          @map("metodo_pago")
+  referenciaPago  String?             @map("referencia_pago")
+  estatus         EstatusComprobante  @default(PENDIENTE)
+  validadoPor     String?             @map("validado_por") // userId admin
+  validadoEn      DateTime?           @map("validado_en")
+  notasValidacion String?             @map("notas_validacion")
+  creadoEn        DateTime            @default(now()) @map("creado_en")
+  actualizadoEn   DateTime            @updatedAt @map("actualizado_en")
+
+  compra          Compra?
+
+  @@index([estatus])
+  @@map("comprobantes")
+}
+
+// ============================================
+// CONFIGURACIÓN DEL SITIO
+// ============================================
+
+model ConfiguracionSitio {
+  id                String   @id @default("default")
+  nombreNegocio     String   @default("ASHA") @map("nombre_negocio")
+  slogan            String?
+  logoUrl           String?  @map("logo_url")
+  colorPrimario     String   @default("#E91E63") @map("color_primario")
+  colorSecundario   String   @default("#F8BBD0") @map("color_secundario")
+  heroTitulo        String?  @map("hero_titulo")
+  heroSubtitulo     String?  @map("hero_subtitulo")
+  heroImagenUrl     String?  @map("hero_imagen_url")
+  whatsappPrincipal String?  @map("whatsapp_principal")
+  emailContacto     String?  @map("email_contacto")
+  facebookUrl       String?  @map("facebook_url")
+  instagramUrl      String?  @map("instagram_url")
+  tiktokUrl         String?  @map("tiktok_url")
+  textoLegal        String?  @map("texto_legal")
+  actualizadoEn     DateTime @updatedAt @map("actualizado_en")
+
+  @@map("configuracion_sitio")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum CategoriaProducto {
+  LABIALES
+  BASES
+  OJOS
+  RUBORES
+  BROCHAS
+  KITS
+  CUIDADO_PIEL
+  UNAS
+  OTROS
+}
+
+enum Municipio {
+  TONALA
+  ZAPOPAN
+  GUADALAJARA
+  TLAQUEPAQUE
+  OTRO
+}
+
+enum EstatusCompra {
+  PENDIENTE
+  PAGADO
+  LISTO_ENTREGA
+  ENTREGADO
+  CANCELADO
+}
+
+enum EstatusComprobante {
+  PENDIENTE
+  APROBADO
+  RECHAZADO
+}
+
+enum MetodoPago {
+  TRANSFERENCIA
+  EFECTIVO
+  OXXO
+}
+
+enum NivelClienta {
+  BRONCE
+  PLATA
+  ORO
+}
