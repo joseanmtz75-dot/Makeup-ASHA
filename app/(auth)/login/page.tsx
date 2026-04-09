@@ -1,5 +1,11 @@
+import { LoginForm } from "@/components/auth/LoginForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkles } from "lucide-react";
+import { Suspense } from "react";
+
+export const metadata = {
+  title: "Iniciar sesión",
+};
 
 export default function LoginPage() {
   return (
@@ -10,12 +16,14 @@ export default function LoginPage() {
             <Sparkles className="h-6 w-6 text-primary" />
           </div>
           <CardTitle className="text-2xl">ASHA Admin</CardTitle>
-          <CardDescription>Acceso para administradoras y operadoras</CardDescription>
+          <CardDescription>
+            Acceso para administradoras y operadoras
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border border-dashed border-border/40 p-6 text-center text-sm text-muted-foreground">
-            El formulario de login se construye en Fase 1 (paso 1: auth admin/operadora).
-          </div>
+          <Suspense fallback={<div className="text-center text-sm text-muted-foreground">Cargando...</div>}>
+            <LoginForm />
+          </Suspense>
         </CardContent>
       </Card>
     </div>

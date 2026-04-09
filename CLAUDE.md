@@ -401,26 +401,43 @@ NEXT_PUBLIC_APP_NAME=ASHA
 
 ## 14. Plan de fases
 
-### Fase 0 — Setup (siguiente paso)
-- Proyecto Next.js inicializado.
-- Supabase creado, schema básico.
-- Variables de entorno configuradas.
-- Repo en GitHub + deploy en Vercel.
-- Tailwind + shadcn/ui base.
-- Estructura de carpetas creada.
-- Layout base público + dashboard.
+### Fase 0 — Setup ✅ COMPLETADA
+- ✅ Next.js 16.2.3 + React 19 + TypeScript + App Router
+- ✅ Tailwind 4 + shadcn/ui (Base UI) + 9 componentes base
+- ✅ Prisma 6.19 conectado a Supabase Postgres
+- ✅ Schema con 6 tablas + 6 enums (Producto, ImagenProducto, Clienta, Compra, Comprobante, ConfiguracionSitio)
+- ✅ Helpers: lib/prisma.ts, lib/supabase/{client,server,admin}.ts, lib/auth/getUserContext.ts, lib/csrf.ts, lib/rate-limit.ts, lib/whatsapp.ts, lib/utils/dineroMxn.ts
+- ✅ Constantes: municipios, categorías
+- ✅ Layout público (Header + Footer + Home), layout dashboard (Sidebar + Home), layout auth con /login placeholder
+- ✅ Endpoint /api/health validando conexión Supabase end-to-end
+- ✅ proxy.ts con headers de seguridad + protección de rutas /dashboard por rol
+- ✅ Build de producción sin errores ni warnings
+- ⏳ GitHub remote + Vercel deploy (requiere acción manual del usuario, no bloquea Fase 1)
 
-### Fase 1 — Catálogo y administración base (lo que se construye primero)
+**Notas técnicas de la ejecución:**
+- Prisma 7 introdujo breaking changes (config movió a `prisma.config.ts` con driver adapters). Se bajó a Prisma 6 estable.
+- Tailwind 4 usa config CSS-based, no archivo JS.
+- shadcn/ui ahora usa Base UI en lugar de Radix. `asChild` ya no aplica — usar `buttonVariants()` con `Link` directamente.
+- Next.js 16 deprecó `middleware.ts`. Ahora se usa `proxy.ts` con función `proxy()`.
+
+### Fase 1 — Catálogo y administración base ✅ COMPLETADA
 Lo más importante para que las socias puedan ordenar su negocio actual. **Sin dinámicas todavía**.
-1. **Auth admin/operadora** — Login con email + password, middleware de roles, layout del dashboard.
-2. **CRUD de productos** (admin) — Crear, editar, eliminar, fotos múltiples, stock, categorías, marcar activo/inactivo.
-3. **Catálogo público** — Página pública con grid de productos, filtros por categoría, búsqueda simple, detalle de producto con galería.
-4. **CRUD de clientas** (admin) — Alta manual, edición, búsqueda por teléfono o nombre, historial completo de compras y boletos.
-5. **Compras directas** — Clienta entra al catálogo, agrega productos, llena nombre + teléfono + dirección + municipio, sube comprobante. Sin registro obligatorio.
-6. **Cola de validación de comprobantes** (admin) — Lista de pendientes, preview de imagen, botón aprobar/rechazar, baja de stock automática al aprobar.
-7. **Gestión de pedidos** (admin) — Lista de pedidos por estatus (pendiente/pagado/listo/entregado/cancelado), cambio de estatus, datos de entrega visibles.
-8. **Dashboard básico** — Resumen del día: pedidos pendientes, comprobantes por validar, productos con stock bajo, total vendido del mes.
-9. **Configuración del sitio** (admin) — Logo, colores, info de contacto, número de WhatsApp principal, textos del hero.
+
+1. ✅ **Auth admin/operadora** — Login email+password con Supabase Auth, middleware de roles via proxy.ts, logout, script `crear-admin.ts` para alta manual.
+2. ✅ **CRUD de productos** — Crear/editar/eliminar/listar productos, upload múltiple a Supabase Storage (`productos-publico`), categorías, stock, activo/inactivo, destacado, soft-delete si tiene compras asociadas.
+3. ✅ **Catálogo público** — `/catalogo` con grid responsive, filtros por categoría, búsqueda, badges (destacado, agotado, stock bajo). `/catalogo/[id]` con galería interactiva.
+4. ✅ **CRUD de clientas** — Lista con búsqueda, alta manual, edición, vista de detalle con compras, total gastado, puntos, niveles.
+5. ✅ **Compras directas (checkout)** — Diálogo de 3 pasos: datos → pago/comprobante → confirmación. Lookup por teléfono, sin registro obligatorio. Crea Clienta+Compra+Comprobante en una transacción.
+6. ✅ **Cola de validación de comprobantes** — Lista de pendientes con preview via signed URL (10min), aprobar/rechazar con notas, baja stock automática al aprobar, validación de stock antes de aprobar.
+7. ✅ **Gestión de pedidos** — Lista por estatus con tabs y conteos, cambio de estatus con transiciones validadas, devolución automática de stock al cancelar, link directo a WhatsApp con mensaje pre-armado.
+8. ✅ **Dashboard básico** — KPIs reales: ventas del mes, productos activos, clientas, comprobantes pendientes. Acciones requeridas con links contextuales. Lista de productos con stock bajo.
+9. ✅ **Configuración del sitio** — Solo admin (operadora bloqueada). Marca, colores con color picker, hero, contacto, redes sociales, texto legal. Cambios reflejados en frontend público.
+
+**Endpoints totales**: 28 rutas (16 públicas + 12 admin). Todos los admin con `requireRole`, todos los públicos con CSRF + rate limit + DOMPurify.
+
+**Buckets Storage**:
+- `productos-publico` (público, 5MB max, JPG/PNG/WebP/GIF)
+- `comprobantes-privado` (privado, 5MB max, JPG/PNG/WebP, signed URLs 10min)
 
 ### Fase 2 — Dinámicas de boletos
 Una vez que catálogo y administración estén operando bien:

@@ -11,6 +11,7 @@ import {
   Receipt,
   Settings,
   Sparkles,
+  LogOut,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -56,6 +57,18 @@ export function SidebarDashboard() {
           );
         })}
       </nav>
+
+      <div className="border-t border-border/40 p-4">
+        <form action="/logout" method="POST">
+          <button
+            type="submit"
+            className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+          >
+            <LogOut className="h-4 w-4" />
+            Cerrar sesión
+          </button>
+        </form>
+      </div>
     </aside>
   );
 }
