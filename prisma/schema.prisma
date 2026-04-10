@@ -1,7 +1,7 @@
 // Makeup ASHA — Schema Prisma
 // Single-tenant: todas las tablas pertenecen a ASHA implícitamente.
-// Fase 1 incluye: catálogo + clientas + compras directas + comprobantes + configuración.
-// Fase 2 (dinámicas) y Fase 3 (fidelización) se agregarán después.
+// Fase 1: catálogo + clientas + compras directas + comprobantes + configuración.
+// Fase 2: dinámicas de boletos + sorteo verificable + cancelaciones.
 
 generator client {
   provider = "prisma-client-js"
@@ -32,6 +32,7 @@ model Producto {
 
   imagenes     ImagenProducto[]
   compras      Compra[]
+  dinamicas    Dinamica[]          // dinámicas donde este producto es el premio
 
   @@index([categoria])
   @@index([activo])
@@ -75,6 +76,9 @@ model Clienta {
   referidaPor     Clienta?     @relation("Referidas", fields: [referidaPorId], references: [id])
   referidas       Clienta[]    @relation("Referidas")
   compras         Compra[]
+  boletos         Boleto[]
+  solicitudesCancelacion SolicitudCancelacion[]
+  dinamicasGanadas Dinamica[]  @relation("ClientaGanadora")
 
   @@index([telefono])
   @@index([nivelActual])
@@ -106,6 +110,7 @@ model Compra {
   clienta           Clienta       @relation(fields: [clientaId], references: [id])
   producto          Producto      @relation(fields: [productoId], references: [id])
   comprobante       Comprobante?  @relation(fields: [comprobanteId], references: [id])
+  solicitudesCancelacion SolicitudCancelacion[]
 
   @@index([clientaId])
   @@index([productoId])
@@ -131,6 +136,7 @@ model Comprobante {
   actualizadoEn   DateTime            @updatedAt @map("actualizado_en")
 
   compra          Compra?
+  boleto          Boleto?
 
   @@index([estatus])
   @@map("comprobantes")
@@ -159,6 +165,115 @@ model ConfiguracionSitio {
   actualizadoEn     DateTime @updatedAt @map("actualizado_en")
 
   @@map("configuracion_sitio")
+}
+
+// ============================================
+// DINÁMICAS DE BOLETOS (Fase 2)
+// ============================================
+
+model Dinamica {
+  id                 String           @id @default(cuid())
+  nombre             String
+  descripcion        String?
+  tipo               TipoDinamica     @default(CLASICA)
+  precioBoleto       Float            @map("precio_boleto")
+  totalBoletos       Int              @map("total_boletos")
+  productoPremioId   String?          @map("producto_premio_id")
+  premioCustom       String?          @map("premio_custom") // si el premio no es del catálogo
+  imagenPremioUrl    String?          @map("imagen_premio_url") // imagen del premio custom
+  estatus            EstatusDinamica  @default(BORRADOR)
+  inicioEn           DateTime?        @map("inicio_en")
+  cierreEn           DateTime?        @map("cierre_en") // para express/flash
+  seedGanadora       String?          @map("seed_ganadora") // seed aleatoria (UUID), se publica al cerrar
+  hashSeed           String?          @map("hash_seed") // SHA256 del seed, público desde el inicio
+  boletoGanador      Int?             @map("boleto_ganador") // número ganador, nullable hasta sortear
+  clientaGanadoraId  String?          @map("clienta_ganadora_id")
+  sorteadoEn         DateTime?        @map("sorteado_en")
+  entregadoEn        DateTime?        @map("entregado_en")
+  creadoEn           DateTime         @default(now()) @map("creado_en")
+  actualizadoEn      DateTime         @updatedAt @map("actualizado_en")
+
+  productoPremio     Producto?        @relation(fields: [productoPremioId], references: [id])
+  clientaGanadora    Clienta?         @relation("ClientaGanadora", fields: [clientaGanadoraId], references: [id])
+  boletos            Boleto[]
+  historial          HistorialDinamica[]
+
+  @@index([estatus])
+  @@index([tipo])
+  @@index([inicioEn])
+  @@map("dinamicas")
+}
+
+model Boleto {
+  id              String         @id @default(cuid())
+  dinamicaId      String         @map("dinamica_id")
+  numero          Int
+  clientaId       String?        @map("clienta_id")
+  estatus         EstatusBoleto  @default(DISPONIBLE)
+  nombreCliente   String?        @map("nombre_cliente") // para compra anónima
+  telefonoCliente String?        @map("telefono_cliente") // para compra anónima
+  comprobanteId   String?        @unique @map("comprobante_id")
+  reservadoEn     DateTime?      @map("reservado_en")
+  confirmadoEn    DateTime?      @map("confirmado_en")
+  canceladoEn     DateTime?      @map("cancelado_en")
+  creadoEn        DateTime       @default(now()) @map("creado_en")
+  actualizadoEn   DateTime       @updatedAt @map("actualizado_en")
+
+  dinamica        Dinamica       @relation(fields: [dinamicaId], references: [id])
+  clienta         Clienta?       @relation(fields: [clientaId], references: [id])
+  comprobante     Comprobante?   @relation(fields: [comprobanteId], references: [id])
+  solicitudesCancelacion SolicitudCancelacion[]
+
+  @@unique([dinamicaId, numero]) // un número no puede repetirse en la misma dinámica
+  @@index([dinamicaId])
+  @@index([clientaId])
+  @@index([estatus])
+  @@map("boletos")
+}
+
+model HistorialDinamica {
+  id               String          @id @default(cuid())
+  dinamicaId       String          @map("dinamica_id")
+  estatusAnterior  EstatusDinamica @map("estatus_anterior")
+  estatusNuevo     EstatusDinamica @map("estatus_nuevo")
+  userId           String?         @map("user_id") // quién hizo el cambio
+  notas            String?
+  creadoEn         DateTime        @default(now()) @map("creado_en")
+
+  dinamica         Dinamica        @relation(fields: [dinamicaId], references: [id], onDelete: Cascade)
+
+  @@index([dinamicaId])
+  @@map("historial_dinamicas")
+}
+
+// ============================================
+// CANCELACIONES
+// ============================================
+
+model SolicitudCancelacion {
+  id                String                    @id @default(cuid())
+  tipoOrigen        TipoOrigenCancelacion     @map("tipo_origen")
+  boletoId          String?                   @map("boleto_id")
+  compraId          String?                   @map("compra_id")
+  clientaId         String                    @map("clienta_id")
+  motivo            String
+  estatus           EstatusSolicitudCancelacion @default(PENDIENTE)
+  revisadaPor       String?                   @map("revisada_por") // userId admin
+  revisadaEn        DateTime?                 @map("revisada_en")
+  notasAdmin        String?                   @map("notas_admin")
+  montoDevolucion   Float?                    @map("monto_devolucion")
+  metodoDevolucion  MetodoDevolucion?         @map("metodo_devolucion")
+  creadoEn          DateTime                  @default(now()) @map("creado_en")
+  actualizadoEn     DateTime                  @updatedAt @map("actualizado_en")
+
+  boleto            Boleto?                   @relation(fields: [boletoId], references: [id])
+  compra            Compra?                   @relation(fields: [compraId], references: [id])
+  clienta           Clienta                   @relation(fields: [clientaId], references: [id])
+
+  @@index([estatus])
+  @@index([clientaId])
+  @@index([tipoOrigen])
+  @@map("solicitudes_cancelacion")
 }
 
 // ============================================
@@ -209,4 +324,51 @@ enum NivelClienta {
   BRONCE
   PLATA
   ORO
+}
+
+// --- Fase 2: Dinámicas ---
+
+enum TipoDinamica {
+  CLASICA
+  EXPRESS
+  VIP
+  FLASH
+  COMBO_SORPRESA
+  CAJA_SORPRESA
+  SUBASTA
+}
+
+enum EstatusDinamica {
+  BORRADOR
+  ACTIVA
+  LLENA
+  GANADORA_SELECCIONADA
+  ENTREGADA
+  CANCELADA
+}
+
+enum EstatusBoleto {
+  DISPONIBLE
+  RESERVADO
+  PENDIENTE_VALIDACION
+  CONFIRMADO
+  CANCELACION_SOLICITADA
+  CANCELADO
+}
+
+enum EstatusSolicitudCancelacion {
+  PENDIENTE
+  APROBADA
+  RECHAZADA
+}
+
+enum TipoOrigenCancelacion {
+  BOLETO
+  COMPRA
+}
+
+enum MetodoDevolucion {
+  TRANSFERENCIA
+  EFECTIVO
+  SALDO_PUNTOS
 }

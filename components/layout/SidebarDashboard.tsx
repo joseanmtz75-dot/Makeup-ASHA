@@ -12,14 +12,18 @@ import {
   Settings,
   Sparkles,
   LogOut,
+  Ticket,
+  Ban,
 } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Inicio", icon: LayoutDashboard },
+  { href: "/dashboard/dinamicas", label: "Dinámicas", icon: Ticket },
   { href: "/dashboard/productos", label: "Productos", icon: Package },
   { href: "/dashboard/clientas", label: "Clientas", icon: Users },
   { href: "/dashboard/pedidos", label: "Pedidos", icon: ShoppingCart },
   { href: "/dashboard/comprobantes", label: "Comprobantes", icon: Receipt },
+  { href: "/dashboard/cancelaciones", label: "Cancelaciones", icon: Ban },
   { href: "/dashboard/configuracion", label: "Configuración", icon: Settings },
 ];
 

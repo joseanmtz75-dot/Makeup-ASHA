@@ -53,6 +53,11 @@ export async function PUT(
       where: { id },
       include: {
         compra: { include: { producto: true } },
+        boleto: {
+          include: {
+            dinamica: { select: { id: true, precioBoleto: true, totalBoletos: true, estatus: true } },
+          },
+        },
       },
     });
 
@@ -63,7 +68,7 @@ export async function PUT(
     }
 
     if (data.decision === "APROBADO") {
-      // Verificar stock disponible antes de aprobar
+      // Verificar stock disponible antes de aprobar (solo compras de catálogo)
       if (
         comprobante.compra &&
         comprobante.compra.producto.stock < comprobante.compra.cantidad
@@ -85,7 +90,7 @@ export async function PUT(
           },
         });
 
-        // 2. Actualizar compra y bajar stock
+        // 2. Actualizar compra y bajar stock (compra de catálogo)
         if (comprobante.compra) {
           await tx.compra.update({
             where: { id: comprobante.compra.id },
@@ -99,17 +104,79 @@ export async function PUT(
             },
           });
         }
+
+        // 3. Confirmar boleto(s) vinculados (compra de dinámica)
+        if (comprobante.boleto) {
+          // El comprobante está vinculado al primer boleto, pero pueden ser varios
+          // de la misma clienta en la misma dinámica con la misma reserva
+          const clientaId = comprobante.boleto.clientaId;
+          const dinamicaId = comprobante.boleto.dinamicaId;
+          const reservadoEn = comprobante.boleto.reservadoEn;
+
+          if (clientaId && reservadoEn) {
+            // Confirmar todos los boletos de la misma reserva
+            await tx.boleto.updateMany({
+              where: {
+                dinamicaId,
+                clientaId,
+                reservadoEn,
+                estatus: "PENDIENTE_VALIDACION",
+              },
+              data: {
+                estatus: "CONFIRMADO",
+                confirmadoEn: new Date(),
+              },
+            });
+          } else {
+            // Solo el boleto directo
+            await tx.boleto.update({
+              where: { id: comprobante.boleto.id },
+              data: {
+                estatus: "CONFIRMADO",
+                confirmadoEn: new Date(),
+              },
+            });
+          }
+        }
       });
     } else {
       // RECHAZADO
-      await prisma.comprobante.update({
-        where: { id },
-        data: {
-          estatus: "RECHAZADO",
-          validadoPor: ctx.userId,
-          validadoEn: new Date(),
-          notasValidacion: data.notasValidacion,
-        },
+      await prisma.$transaction(async (tx) => {
+        await tx.comprobante.update({
+          where: { id },
+          data: {
+            estatus: "RECHAZADO",
+            validadoPor: ctx.userId,
+            validadoEn: new Date(),
+            notasValidacion: data.notasValidacion,
+          },
+        });
+
+        // Si era un boleto, liberar los números
+        if (comprobante.boleto) {
+          const clientaId = comprobante.boleto.clientaId;
+          const dinamicaId = comprobante.boleto.dinamicaId;
+          const reservadoEn = comprobante.boleto.reservadoEn;
+
+          if (clientaId && reservadoEn) {
+            await tx.boleto.updateMany({
+              where: {
+                dinamicaId,
+                clientaId,
+                reservadoEn,
+                estatus: "PENDIENTE_VALIDACION",
+              },
+              data: {
+                estatus: "DISPONIBLE",
+                clientaId: null,
+                nombreCliente: null,
+                telefonoCliente: null,
+                comprobanteId: null,
+                reservadoEn: null,
+              },
+            });
+          }
+        }
       });
     }
 

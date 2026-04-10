@@ -13,6 +13,8 @@ import {
   TrendingUp,
   AlertTriangle,
   ArrowRight,
+  Ticket,
+  Ban,
 } from "lucide-react";
 
 export const metadata = { title: "Inicio" };
@@ -32,6 +34,8 @@ export default async function DashboardHomePage() {
     pedidosPagados,
     pedidosListos,
     comprobantesPendientes,
+    dinamicasActivas,
+    cancelacionesPendientes,
     ventasMes,
   ] = await Promise.all([
     prisma.producto.count(),
@@ -47,6 +51,8 @@ export default async function DashboardHomePage() {
     prisma.compra.count({ where: { estatus: "PAGADO" } }),
     prisma.compra.count({ where: { estatus: "LISTO_ENTREGA" } }),
     prisma.comprobante.count({ where: { estatus: "PENDIENTE" } }),
+    prisma.dinamica.count({ where: { estatus: { in: ["ACTIVA", "LLENA"] } } }),
+    prisma.solicitudCancelacion.count({ where: { estatus: "PENDIENTE" } }),
     prisma.compra.aggregate({
       where: {
         estatus: { notIn: ["CANCELADO", "PENDIENTE"] },
@@ -113,14 +119,12 @@ export default async function DashboardHomePage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Por validar
-            </CardTitle>
-            <Receipt className="h-4 w-4 text-amber-500" />
+            <CardTitle className="text-sm font-medium">Dinámicas</CardTitle>
+            <Ticket className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{comprobantesPendientes}</div>
-            <p className="text-xs text-muted-foreground">comprobantes</p>
+            <div className="text-2xl font-bold">{dinamicasActivas}</div>
+            <p className="text-xs text-muted-foreground">activas ahora</p>
           </CardContent>
         </Card>
       </div>
@@ -206,10 +210,31 @@ export default async function DashboardHomePage() {
               </Link>
             )}
 
+            {cancelacionesPendientes > 0 && (
+              <Link
+                href="/dashboard/cancelaciones"
+                className="flex items-center justify-between rounded-md border bg-red-50 p-3 transition hover:bg-red-100"
+              >
+                <div className="flex items-center gap-3">
+                  <Ban className="h-5 w-5 text-red-700" />
+                  <div>
+                    <div className="text-sm font-medium">
+                      {cancelacionesPendientes} cancelación(es) por revisar
+                    </div>
+                    <div className="text-xs text-red-900/70">
+                      Solicitudes de clientas
+                    </div>
+                  </div>
+                </div>
+                <ArrowRight className="h-4 w-4 text-red-700" />
+              </Link>
+            )}
+
             {comprobantesPendientes === 0 &&
               pedidosPagados === 0 &&
               pedidosListos === 0 &&
-              pedidosPendientes === 0 && (
+              pedidosPendientes === 0 &&
+              cancelacionesPendientes === 0 && (
                 <p className="py-6 text-center text-sm text-muted-foreground">
                   Todo al día 🎉
                 </p>

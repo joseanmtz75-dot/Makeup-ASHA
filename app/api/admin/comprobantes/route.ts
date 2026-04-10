@@ -28,6 +28,14 @@ export async function GET(request: NextRequest) {
             producto: true,
           },
         },
+        boleto: {
+          include: {
+            clienta: true,
+            dinamica: {
+              select: { id: true, nombre: true, precioBoleto: true },
+            },
+          },
+        },
       },
       orderBy: { creadoEn: "desc" },
     });
