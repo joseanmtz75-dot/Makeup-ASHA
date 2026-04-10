@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 
 export function LoginForm() {
   const router = useRouter();
@@ -17,6 +17,7 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isPending, startTransition] = useTransition();
+  const [mostrarPassword, setMostrarPassword] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -74,16 +75,31 @@ export function LoginForm() {
 
       <div className="space-y-2">
         <Label htmlFor="password">Contraseña</Label>
-        <Input
-          id="password"
-          type="password"
-          placeholder="••••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          disabled={isPending}
-          autoComplete="current-password"
-          required
-        />
+        <div className="relative">
+          <Input
+            id="password"
+            type={mostrarPassword ? "text" : "password"}
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={isPending}
+            autoComplete="current-password"
+            required
+            className="pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => setMostrarPassword(!mostrarPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            tabIndex={-1}
+          >
+            {mostrarPassword ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
+          </button>
+        </div>
       </div>
 
       <Button type="submit" className="w-full" disabled={isPending}>

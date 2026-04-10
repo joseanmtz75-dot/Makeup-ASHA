@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Sparkles } from "lucide-react";
+import { Sparkles, LogIn } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 
 export function HeaderPublico() {
   return (
@@ -25,12 +26,13 @@ export function HeaderPublico() {
           </Link>
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Link
-            href="/mi-perfil"
-            className="text-sm font-medium transition hover:text-primary"
+            href="/login"
+            className={buttonVariants({ variant: "outline", size: "sm" })}
           >
-            Mi perfil
+            <LogIn className="mr-2 h-4 w-4" />
+            Iniciar sesión
           </Link>
         </div>
       </div>
