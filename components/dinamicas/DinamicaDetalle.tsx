@@ -55,6 +55,7 @@ type DinamicaFull = {
   precioBoleto: number;
   totalBoletos: number;
   estatus: EstatusDinamica;
+  esHistorico: boolean;
   hashSeed: string | null;
   seedGanadora: string | null;
   boletoGanador: number | null;
@@ -97,6 +98,7 @@ export function DinamicaDetalle({ dinamica }: { dinamica: DinamicaFull }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [accion, setAccion] = useState<string>("");
+  const [ganadoraBoletoId, setGanadoraBoletoId] = useState<string>("");
 
   const boletosConfirmados = dinamica.boletos.filter(
     (b) => b.estatus === "CONFIRMADO"
@@ -166,6 +168,51 @@ export function DinamicaDetalle({ dinamica }: { dinamica: DinamicaFull }) {
     });
   }
 
+  function handleAsignarGanadora() {
+    const boleto = dinamica.boletos.find((b) => b.id === ganadoraBoletoId);
+    if (!boleto) {
+      toast.error("Selecciona un boleto");
+      return;
+    }
+    const clienta = boleto.clienta;
+    if (!clienta) {
+      toast.error(
+        "Este boleto no tiene clienta vinculada (nombre libre). Vincúlalo primero desde Clientas."
+      );
+      return;
+    }
+    if (
+      !confirm(
+        `¿Marcar a ${clienta.nombre} (boleto #${boleto.numero}) como ganadora de esta dinámica histórica?`
+      )
+    )
+      return;
+
+    setAccion("asignar-ganadora");
+    startTransition(async () => {
+      const res = await fetch(`/api/admin/dinamicas/${dinamica.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: JSON.stringify({
+          boletoGanador: boleto.numero,
+          clientaGanadoraId: clienta.id,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error("Error", { description: err.error });
+        setAccion("");
+        return;
+      }
+      toast.success("Ganadora asignada");
+      router.refresh();
+      setAccion("");
+    });
+  }
+
   return (
     <div className="space-y-6">
       {/* Header con acciones */}
@@ -185,6 +232,11 @@ export function DinamicaDetalle({ dinamica }: { dinamica: DinamicaFull }) {
             >
               {ESTATUS_DINAMICA_LABEL[dinamica.estatus]}
             </Badge>
+            {dinamica.esHistorico && (
+              <Badge variant="outline" className="border-amber-500 text-amber-700">
+                Histórica
+              </Badge>
+            )}
           </div>
           {dinamica.descripcion && (
             <p className="mt-2 text-muted-foreground">{dinamica.descripcion}</p>
@@ -264,6 +316,58 @@ export function DinamicaDetalle({ dinamica }: { dinamica: DinamicaFull }) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Asignar ganadora manualmente (solo históricas sin ganadora) */}
+      {dinamica.esHistorico && !dinamica.clientaGanadora && (
+        <Card className="border-amber-300 bg-amber-50/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-amber-900">
+              <Trophy className="h-5 w-5" />
+              Asignar ganadora manualmente
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-amber-900">
+              Esta es una dinámica histórica (previa al sistema verificable).
+              Selecciona el número del boleto ganador — la clienta se asigna
+              automáticamente.
+            </p>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <select
+                value={ganadoraBoletoId}
+                onChange={(e) => setGanadoraBoletoId(e.target.value)}
+                className="flex h-10 flex-1 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="">— Elige un boleto —</option>
+                {dinamica.boletos
+                  .filter(
+                    (b) => b.estatus === "CONFIRMADO" && (b.clienta || b.nombreCliente)
+                  )
+                  .map((b) => {
+                    const nombre = b.clienta?.nombre ?? b.nombreCliente ?? "";
+                    const sinClienta = !b.clienta;
+                    return (
+                      <option key={b.id} value={b.id} disabled={sinClienta}>
+                        #{b.numero} — {nombre}
+                        {sinClienta ? " (sin clienta vinculada)" : ""}
+                      </option>
+                    );
+                  })}
+              </select>
+              <Button
+                onClick={handleAsignarGanadora}
+                disabled={isPending || !ganadoraBoletoId}
+                className="bg-amber-600 hover:bg-amber-700"
+              >
+                {isPending && accion === "asignar-ganadora" && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Asignar ganadora
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Resultado del sorteo */}
       {dinamica.boletoGanador && dinamica.clientaGanadora && (

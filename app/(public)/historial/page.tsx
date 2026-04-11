@@ -9,6 +9,8 @@ export default async function HistorialPage() {
   const dinamicas = await prisma.dinamica.findMany({
     where: {
       estatus: { in: ["GANADORA_SELECCIONADA", "ENTREGADA"] },
+      // Solo mostrar dinámicas que realmente tengan ganadora asignada
+      clientaGanadoraId: { not: null },
     },
     select: {
       id: true,
@@ -17,11 +19,13 @@ export default async function HistorialPage() {
       precioBoleto: true,
       totalBoletos: true,
       estatus: true,
+      esHistorico: true,
       boletoGanador: true,
       seedGanadora: true,
       hashSeed: true,
       sorteadoEn: true,
       entregadoEn: true,
+      creadoEn: true,
       premioCustom: true,
       imagenPremioUrl: true,
       productoPremio: {
@@ -39,7 +43,7 @@ export default async function HistorialPage() {
         select: { nombre: true, telefono: true },
       },
     },
-    orderBy: { sorteadoEn: "desc" },
+    orderBy: [{ sorteadoEn: "desc" }, { creadoEn: "desc" }],
   });
 
   // Censurar datos personales
@@ -58,6 +62,7 @@ export default async function HistorialPage() {
       id: d.id,
       nombre: d.nombre,
       tipo: d.tipo,
+      esHistorico: d.esHistorico,
       precioBoleto: d.precioBoleto,
       totalBoletos: d.totalBoletos,
       boletoGanador: d.boletoGanador,
@@ -66,7 +71,7 @@ export default async function HistorialPage() {
         d.imagenPremioUrl ?? d.productoPremio?.imagenes[0]?.url ?? null,
       ganadora: alias,
       telefonoCensurado: telCensurado,
-      sorteadoEn: d.sorteadoEn?.toISOString() ?? null,
+      sorteadoEn: d.sorteadoEn?.toISOString() ?? d.creadoEn.toISOString(),
       entregadoEn: d.entregadoEn?.toISOString() ?? null,
       verificacion: {
         hashSeed: d.hashSeed,

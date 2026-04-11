@@ -14,6 +14,7 @@ export async function GET() {
     const dinamicas = await prisma.dinamica.findMany({
       where: {
         estatus: { in: ["GANADORA_SELECCIONADA", "ENTREGADA"] },
+        clientaGanadoraId: { not: null },
       },
       select: {
         id: true,
@@ -22,11 +23,13 @@ export async function GET() {
         precioBoleto: true,
         totalBoletos: true,
         estatus: true,
+        esHistorico: true,
         boletoGanador: true,
         seedGanadora: true,
         hashSeed: true,
         sorteadoEn: true,
         entregadoEn: true,
+        creadoEn: true,
         premioCustom: true,
         imagenPremioUrl: true,
         productoPremio: {
@@ -44,7 +47,7 @@ export async function GET() {
           select: { nombre: true, telefono: true },
         },
       },
-      orderBy: { sorteadoEn: "desc" },
+      orderBy: [{ sorteadoEn: "desc" }, { creadoEn: "desc" }],
     });
 
     // Censurar datos personales para vista pública
@@ -65,6 +68,7 @@ export async function GET() {
         id: d.id,
         nombre: d.nombre,
         tipo: d.tipo,
+        esHistorico: d.esHistorico,
         precioBoleto: d.precioBoleto,
         totalBoletos: d.totalBoletos,
         estatus: d.estatus,

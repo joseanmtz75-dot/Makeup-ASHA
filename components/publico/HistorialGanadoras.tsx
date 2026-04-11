@@ -15,6 +15,7 @@ type GanadoraPublica = {
   id: string;
   nombre: string;
   tipo: TipoDinamica;
+  esHistorico: boolean;
   precioBoleto: number;
   totalBoletos: number;
   boletoGanador: number | null;
@@ -77,6 +78,15 @@ export function HistorialGanadoras({ ganadoras }: Props) {
                 <Badge variant="outline">
                   {TIPO_DINAMICA_LABEL[g.tipo]}
                 </Badge>
+                {g.esHistorico && (
+                  <Badge
+                    variant="outline"
+                    className="border-amber-500 text-amber-700"
+                    title="Dinámica previa al sistema de selección verificable"
+                  >
+                    Histórica
+                  </Badge>
+                )}
                 {g.entregadoEn && (
                   <Badge variant="secondary">
                     <Gift className="mr-1 h-3 w-3" />
