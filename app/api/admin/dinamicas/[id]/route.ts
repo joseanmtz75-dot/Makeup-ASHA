@@ -114,10 +114,23 @@ export async function PUT(
     });
     if (!existe) return apiNotFound("Dinámica");
 
-    // Solo se pueden editar campos si está en BORRADOR
-    if (Object.keys(data).length > 0 && existe.estatus !== "BORRADOR") {
+    // Solo se pueden editar campos si está en BORRADOR (excepto históricas, que son editables siempre)
+    if (
+      Object.keys(data).length > 0 &&
+      existe.estatus !== "BORRADOR" &&
+      !existe.esHistorico
+    ) {
       return apiBadRequest(
         "Solo se puede editar una dinámica en estado Borrador"
+      );
+    }
+
+    // Los campos de ganadora manual solo se aceptan en dinámicas históricas
+    const seteoGanadora =
+      data.clientaGanadoraId !== undefined || data.boletoGanador !== undefined;
+    if (seteoGanadora && !existe.esHistorico) {
+      return apiBadRequest(
+        "La ganadora solo puede asignarse manualmente en dinámicas históricas"
       );
     }
 
@@ -156,6 +169,14 @@ export async function PUT(
         updateData.imagenPremioUrl = data.imagenPremioUrl;
       if (data.inicioEn !== undefined) updateData.inicioEn = data.inicioEn;
       if (data.cierreEn !== undefined) updateData.cierreEn = data.cierreEn;
+
+      // Ganadora manual para dinámicas históricas
+      if (existe.esHistorico) {
+        if (data.clientaGanadoraId !== undefined)
+          updateData.clientaGanadoraId = data.clientaGanadoraId;
+        if (data.boletoGanador !== undefined)
+          updateData.boletoGanador = data.boletoGanador;
+      }
 
       // Si se cambia totalBoletos en borrador, recrear boletos
       if (

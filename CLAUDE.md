@@ -502,6 +502,7 @@ Ninguna de estas bloquea el desarrollo del backend. Se resuelven en paralelo o a
 - ⏳ Quién valida los comprobantes al inicio (¿una socia o ambas? ¿turnos?).
 - ⏳ Frase de marca / slogan.
 - ⏳ Qué pasa si una clienta no recoge su premio (timeout, segunda oportunidad, etc.). **Decisión para Fase 2**.
+- ⏳ **Agregar rol `superadmin` por encima de `admin`**. Reservado para el dueño del proyecto (desarrollador). Objetivo: proteger funcionalidades críticas que las socias admin no deberían poder tocar. Candidatas a proteger (por definir con exactitud): gestión de usuarios (crear/borrar admins y operadoras), configuración del sitio (marca, colores, textos legales), eliminación de datos históricos, cambios en el algoritmo de sorteo/seed de dinámicas, métricas financieras completas. Implica: nuevo tipo en `lib/auth/getUserContext.ts`, ajustar `requireRole` en endpoints/páginas protegidas, ocultar secciones en el dashboard para role admin, actualizar `user_metadata.role` del dueño en Supabase. **No bloquea**, se implementa cuando el catálogo base esté usándose en producción y quede claro qué restringir.
 
 ---
 

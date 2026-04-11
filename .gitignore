@@ -55,3 +55,7 @@ next-env.d.ts
 
 # Claude Code
 .claude/
+
+# Seed desde Excel: datos temporales e informe generados localmente
+/scripts/tmp-excel/
+/scripts/seed-excel-report.txt

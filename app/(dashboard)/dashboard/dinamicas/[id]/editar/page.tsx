@@ -22,7 +22,7 @@ export default async function EditarDinamicaPage({
 
   if (!dinamica) notFound();
 
-  if (dinamica.estatus !== "BORRADOR") {
+  if (dinamica.estatus !== "BORRADOR" && !dinamica.esHistorico) {
     redirect(`/dashboard/dinamicas/${id}`);
   }
 

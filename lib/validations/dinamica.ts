@@ -93,6 +93,14 @@ export const dinamicaUpdateSchema = z.object({
   imagenPremioUrl: z.string().url("URL inválida").optional().nullable(),
   inicioEn: z.coerce.date().optional().nullable(),
   cierreEn: z.coerce.date().optional().nullable(),
+  // Solo efectivos cuando esHistorico=true (el handler lo valida)
+  clientaGanadoraId: z.string().optional().nullable(),
+  boletoGanador: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .nullable(),
 });
 
 export type DinamicaCreateInput = z.infer<typeof dinamicaCreateSchema>;

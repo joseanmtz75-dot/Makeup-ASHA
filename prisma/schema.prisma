@@ -27,6 +27,7 @@ model Producto {
   sku          String?             @unique
   activo       Boolean             @default(true)
   destacado    Boolean             @default(false)
+  variantes    Json?               // [{nombre: "Cherry", colorHex?: "#FF0000"}, ...]
   creadoEn     DateTime            @default(now()) @map("creado_en")
   actualizadoEn DateTime           @updatedAt @map("actualizado_en")
 
@@ -188,6 +189,7 @@ model Dinamica {
   hashSeed           String?          @map("hash_seed") // SHA256 del seed, público desde el inicio
   boletoGanador      Int?             @map("boleto_ganador") // número ganador, nullable hasta sortear
   clientaGanadoraId  String?          @map("clienta_ganadora_id")
+  esHistorico        Boolean          @default(false) @map("es_historico") // dinámica previa al sistema verificable
   sorteadoEn         DateTime?        @map("sorteado_en")
   entregadoEn        DateTime?        @map("entregado_en")
   creadoEn           DateTime         @default(now()) @map("creado_en")
