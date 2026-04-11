@@ -15,7 +15,7 @@ const RUTAS_DASHBOARD = ["/dashboard"];
 // Rutas solo para admin (no operadora)
 const RUTAS_SOLO_ADMIN = ["/dashboard/configuracion"];
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request: { headers: request.headers },
   });

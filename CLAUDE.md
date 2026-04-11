@@ -273,7 +273,7 @@ DIRECT_URL=postgresql://...@db.[ref].supabase.co:5432/postgres
 WHATSAPP_NUMERO_PRINCIPAL=523312345678  # Número de las socias
 
 # App
-NEXT_PUBLIC_APP_URL=https://makeup-asha.vercel.app
+NEXT_PUBLIC_APP_URL=https://asha-makeup.vercel.app
 NEXT_PUBLIC_APP_NAME=ASHA
 ```
 
