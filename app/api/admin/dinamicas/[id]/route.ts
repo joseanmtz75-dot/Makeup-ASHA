@@ -178,11 +178,14 @@ export async function PUT(
           updateData.boletoGanador = data.boletoGanador;
       }
 
-      // Si se cambia totalBoletos en borrador, recrear boletos
+      // Si se cambia totalBoletos, solo permitir si no hay boletos vendidos
       if (
         data.totalBoletos !== undefined &&
         data.totalBoletos !== existe.totalBoletos
       ) {
+        if (existe._count.boletos > 0) {
+          throw new Error("NO_CAMBIAR_BOLETOS");
+        }
         updateData.totalBoletos = data.totalBoletos;
         await tx.boleto.deleteMany({ where: { dinamicaId: id } });
         await tx.boleto.createMany({
@@ -224,6 +227,11 @@ export async function PUT(
   } catch (error) {
     if (error instanceof ZodError) return apiZodError(error);
     if (error instanceof SyntaxError) return apiBadRequest("JSON inválido");
+    if (error instanceof Error && error.message === "NO_CAMBIAR_BOLETOS") {
+      return apiBadRequest(
+        "No se puede cambiar el total de boletos porque ya hay boletos vendidos"
+      );
+    }
     console.error("[PUT /api/admin/dinamicas/[id]]", error);
     return apiServerError();
   }

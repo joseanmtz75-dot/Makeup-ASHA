@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { apiOk, apiServerError } from "@/lib/api-response";
+import { censurarTelefono } from "@/lib/whatsapp";
 
 export const dynamic = "force-dynamic";
 
@@ -53,15 +54,13 @@ export async function GET() {
     // Censurar datos personales para vista pública
     const publico = dinamicas.map((d) => {
       const nombre = d.clientaGanadora?.nombre ?? "Participante";
-      const tel = d.clientaGanadora?.telefono ?? "";
-      // "Karla M." + "33 ** ** 89"
       const partes = nombre.split(" ");
       const alias =
         partes.length > 1
           ? `${partes[0]} ${partes[1][0]}.`
           : partes[0];
-      const telCensurado = tel.length === 10
-        ? `${tel.slice(0, 2)} ** ** ${tel.slice(8)}`
+      const telCensurado = d.clientaGanadora?.telefono
+        ? censurarTelefono(d.clientaGanadora.telefono)
         : "";
 
       return {

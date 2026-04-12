@@ -10,6 +10,8 @@ type Bucket = {
 };
 
 const buckets = new Map<string, Bucket>();
+let checksSinceCleanup = 0;
+const CLEANUP_INTERVAL = 100; // limpiar cada 100 checks
 
 /**
  * Verifica si una key ha excedido el rate limit.
@@ -23,6 +25,13 @@ export function checkRateLimit(
   max: number,
   windowMs: number
 ): boolean {
+  // Cleanup periódico para evitar memory leak
+  checksSinceCleanup++;
+  if (checksSinceCleanup >= CLEANUP_INTERVAL) {
+    cleanupRateLimits();
+    checksSinceCleanup = 0;
+  }
+
   const now = Date.now();
   const bucket = buckets.get(key);
 

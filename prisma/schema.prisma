@@ -221,9 +221,9 @@ model Boleto {
   creadoEn        DateTime       @default(now()) @map("creado_en")
   actualizadoEn   DateTime       @updatedAt @map("actualizado_en")
 
-  dinamica        Dinamica       @relation(fields: [dinamicaId], references: [id])
-  clienta         Clienta?       @relation(fields: [clientaId], references: [id])
-  comprobante     Comprobante?   @relation(fields: [comprobanteId], references: [id])
+  dinamica        Dinamica       @relation(fields: [dinamicaId], references: [id], onDelete: Cascade)
+  clienta         Clienta?       @relation(fields: [clientaId], references: [id], onDelete: SetNull)
+  comprobante     Comprobante?   @relation(fields: [comprobanteId], references: [id], onDelete: SetNull)
   solicitudesCancelacion SolicitudCancelacion[]
 
   @@unique([dinamicaId, numero]) // un número no puede repetirse en la misma dinámica
@@ -268,9 +268,9 @@ model SolicitudCancelacion {
   creadoEn          DateTime                  @default(now()) @map("creado_en")
   actualizadoEn     DateTime                  @updatedAt @map("actualizado_en")
 
-  boleto            Boleto?                   @relation(fields: [boletoId], references: [id])
-  compra            Compra?                   @relation(fields: [compraId], references: [id])
-  clienta           Clienta                   @relation(fields: [clientaId], references: [id])
+  boleto            Boleto?                   @relation(fields: [boletoId], references: [id], onDelete: SetNull)
+  compra            Compra?                   @relation(fields: [compraId], references: [id], onDelete: SetNull)
+  clienta           Clienta                   @relation(fields: [clientaId], references: [id], onDelete: Cascade)
 
   @@index([estatus])
   @@index([clientaId])

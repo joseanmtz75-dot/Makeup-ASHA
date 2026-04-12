@@ -65,7 +65,10 @@ export async function POST(
     }
 
     // Ejecutar algoritmo de selección
-    const timestampSorteo = new Date().toISOString();
+    // Formato fijo sin milisegundos para que la verificación sea reproducible
+    const ahora = new Date();
+    ahora.setMilliseconds(0);
+    const timestampSorteo = ahora.toISOString(); // "2026-04-12T14:32:45.000Z"
     const numeroGanador = calcularGanador(
       dinamica.seedGanadora,
       dinamica.id,
