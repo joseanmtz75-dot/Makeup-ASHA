@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { CheckoutDialog } from "@/components/publico/CheckoutDialog";
 import { Package, ArrowLeft, ShoppingCart, MessageCircle } from "lucide-react";
+import { normalizarTelefonoMx } from "@/lib/whatsapp";
 
 type Props = {
   producto: {
@@ -21,9 +22,10 @@ type Props = {
     categoria: CategoriaProducto;
     imagenes: { url: string; orden: number }[];
   };
+  whatsapp?: string | null;
 };
 
-export function ProductoDetalle({ producto }: Props) {
+export function ProductoDetalle({ producto, whatsapp }: Props) {
   const [imagenActiva, setImagenActiva] = useState(0);
   const agotado = producto.stock === 0;
 
@@ -141,15 +143,17 @@ export function ProductoDetalle({ producto }: Props) {
               />
             )}
 
-            <a
-              href={`https://wa.me/?text=${mensajeWp}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={buttonVariants({ variant: "outline", size: "lg" })}
-            >
-              <MessageCircle className="mr-2 h-5 w-5" />
-              Preguntar por WhatsApp
-            </a>
+            {whatsapp && (
+              <a
+                href={`https://wa.me/${normalizarTelefonoMx(whatsapp)}?text=${mensajeWp}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={buttonVariants({ variant: "outline", size: "lg" })}
+              >
+                <MessageCircle className="mr-2 h-5 w-5" />
+                Preguntar por WhatsApp
+              </a>
+            )}
           </div>
 
           <p className="mt-4 text-xs text-muted-foreground">

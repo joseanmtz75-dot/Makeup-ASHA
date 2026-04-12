@@ -154,29 +154,6 @@ export async function POST(request: NextRequest) {
         boletosReservados.push(boleto);
       }
 
-      // Verificar si la dinámica se llenó
-      const boletosOcupados = await tx.boleto.count({
-        where: {
-          dinamicaId: data.dinamicaId,
-          estatus: { in: ["PENDIENTE_VALIDACION", "CONFIRMADO"] },
-        },
-      });
-
-      if (boletosOcupados >= dinamica.totalBoletos) {
-        await tx.dinamica.update({
-          where: { id: data.dinamicaId },
-          data: { estatus: "LLENA" },
-        });
-        await tx.historialDinamica.create({
-          data: {
-            dinamicaId: data.dinamicaId,
-            estatusAnterior: "ACTIVA",
-            estatusNuevo: "LLENA",
-            notas: "Todos los boletos ocupados",
-          },
-        });
-      }
-
       return { boletos: boletosReservados, clienta, comprobante };
     });
 

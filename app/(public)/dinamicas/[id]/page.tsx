@@ -85,15 +85,34 @@ export default async function DinamicaPublicaPage({
       ? dinamica.seedGanadora
       : null;
 
-  // Limpiar reservas expiradas (check on-read)
+  // Limpiar reservas expiradas en DB (on-read cleanup)
   const ahora = new Date();
   const timeoutMs = RESERVA_TIMEOUT_MINUTOS * 60 * 1000;
+  const fechaLimite = new Date(ahora.getTime() - timeoutMs);
 
+  // Liberar boletos RESERVADO que pasaron el timeout (escritura real en DB)
+  await prisma.boleto.updateMany({
+    where: {
+      dinamicaId: id,
+      estatus: "RESERVADO",
+      reservadoEn: { lt: fechaLimite },
+    },
+    data: {
+      estatus: "DISPONIBLE",
+      clientaId: null,
+      nombreCliente: null,
+      telefonoCliente: null,
+      comprobanteId: null,
+      reservadoEn: null,
+    },
+  });
+
+  // Re-mapear boletos para la vista (por si el updateMany no procesó alguno en el mismo tick)
   const boletosPublicos = dinamica.boletos.map((b) => {
     if (
       b.estatus === "RESERVADO" &&
       b.reservadoEn &&
-      ahora.getTime() - new Date(b.reservadoEn).getTime() > timeoutMs
+      new Date(b.reservadoEn).getTime() < fechaLimite.getTime()
     ) {
       return { numero: b.numero, estatus: "DISPONIBLE" as const };
     }

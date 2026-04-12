@@ -53,8 +53,8 @@ export async function POST(request: NextRequest) {
       if (boleto.clientaId !== clienta.id) {
         return apiBadRequest("Ese boleto no te pertenece");
       }
-      if (boleto.estatus !== "CONFIRMADO" && boleto.estatus !== "PENDIENTE_VALIDACION") {
-        return apiBadRequest("Solo se puede solicitar cancelación de boletos confirmados o pendientes");
+      if (boleto.estatus !== "CONFIRMADO") {
+        return apiBadRequest("Solo se puede solicitar cancelación de boletos confirmados");
       }
       if (
         boleto.dinamica.estatus === "GANADORA_SELECCIONADA" ||

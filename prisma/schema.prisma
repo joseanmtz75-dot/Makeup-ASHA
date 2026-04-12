@@ -92,7 +92,7 @@ model Clienta {
 
 model Compra {
   id                String        @id @default(cuid())
-  clientaId         String        @map("cliente_id")
+  clientaId         String        @map("clienta_id")
   productoId        String        @map("producto_id")
   cantidad          Int
   precioUnitario    Float         @map("precio_unitario")

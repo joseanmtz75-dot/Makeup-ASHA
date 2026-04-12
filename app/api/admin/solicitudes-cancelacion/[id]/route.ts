@@ -74,16 +74,7 @@ export async function PUT(
       // Efecto en el boleto o compra
       if (solicitud.tipoOrigen === "BOLETO" && solicitud.boletoId) {
         if (data.estatus === "APROBADA") {
-          // Boleto vuelve a DISPONIBLE, se limpian datos
-          await tx.boleto.update({
-            where: { id: solicitud.boletoId },
-            data: {
-              estatus: "CANCELADO",
-              canceladoEn: new Date(),
-            },
-          });
-          // Crear un boleto disponible nuevo con el mismo número
-          // No: simplemente marcar como CANCELADO y luego poner DISPONIBLE
+          // Boleto vuelve a DISPONIBLE para que otra clienta pueda comprarlo
           await tx.boleto.update({
             where: { id: solicitud.boletoId },
             data: {
@@ -97,6 +88,23 @@ export async function PUT(
               canceladoEn: new Date(),
             },
           });
+
+          // Si la dinámica estaba LLENA, regresa a ACTIVA
+          if (solicitud.boleto?.dinamica?.estatus === "LLENA") {
+            await tx.dinamica.update({
+              where: { id: solicitud.boleto.dinamicaId },
+              data: { estatus: "ACTIVA" },
+            });
+            await tx.historialDinamica.create({
+              data: {
+                dinamicaId: solicitud.boleto.dinamicaId,
+                estatusAnterior: "LLENA",
+                estatusNuevo: "ACTIVA",
+                userId: ctx.userId,
+                notas: "Boleto cancelado — dinámica reabierta",
+              },
+            });
+          }
         } else {
           // Rechazada: boleto vuelve a CONFIRMADO (quitar flag de cancelación solicitada)
           await tx.boleto.update({

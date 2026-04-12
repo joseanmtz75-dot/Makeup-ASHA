@@ -137,6 +137,33 @@ export async function PUT(
               },
             });
           }
+
+          // Verificar si todos los boletos de la dinámica están confirmados → LLENA
+          if (comprobante.boleto.dinamica.estatus === "ACTIVA") {
+            const totalBoletos = comprobante.boleto.dinamica.totalBoletos;
+            const boletosConfirmados = await tx.boleto.count({
+              where: {
+                dinamicaId,
+                estatus: "CONFIRMADO",
+              },
+            });
+
+            if (boletosConfirmados >= totalBoletos) {
+              await tx.dinamica.update({
+                where: { id: dinamicaId },
+                data: { estatus: "LLENA" },
+              });
+              await tx.historialDinamica.create({
+                data: {
+                  dinamicaId,
+                  estatusAnterior: "ACTIVA",
+                  estatusNuevo: "LLENA",
+                  userId: ctx.userId,
+                  notas: "Todos los boletos confirmados",
+                },
+              });
+            }
+          }
         }
       });
     } else {

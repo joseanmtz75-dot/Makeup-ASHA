@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getConfiguracion } from "@/lib/config";
 import { ProductoDetalle } from "@/components/publico/ProductoDetalle";
 import type { Metadata } from "next";
 
@@ -49,5 +50,7 @@ export default async function DetalleProductoPage({
 
   if (!producto) notFound();
 
-  return <ProductoDetalle producto={producto} />;
+  const config = await getConfiguracion();
+
+  return <ProductoDetalle producto={producto} whatsapp={config.whatsappPrincipal} />;
 }
