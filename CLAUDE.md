@@ -90,12 +90,13 @@ El negocio opera en zona gris frente a la Ley Federal de Juegos y Sorteos (SEGOB
   - Admin/operadoras: email + password
   - Clientas: link mágico por WhatsApp (passwordless)
 - **Storage**: Supabase Storage (fotos de productos, comprobantes de pago en bucket privado)
-- **UI**: Tailwind CSS + Radix UI + shadcn/ui + Lucide icons
+- **UI**: Tailwind CSS + Base UI + shadcn/ui + Lucide icons
 - **Animaciones**: Framer Motion
 - **Hosting**: Vercel
 - **i18n**: solo español MX por ahora
 - **Validación**: Zod
-- **Sanitización**: isomorphic-dompurify
+- **Sanitización**: `lib/sanitize.ts` (strip HTML tags, sin dependencias externas)
+- **Imagen WhatsApp**: html-to-image (client-side, JPG export)
 
 ### Razones del stack
 - Gratuito o barato hasta volúmenes medios ($0/mes hasta tener tráfico real).
@@ -116,22 +117,24 @@ app/
   api/                   REST API (todos los endpoints filtrados por rol)
 
 lib/
-  auth/                  getUserContext.ts, checkRole.ts, checkPermission.ts
+  auth/                  getUserContext.ts (getUserContext, requireRole)
   supabase/              Clientes: client.ts (browser), server.ts (SSR), admin.ts (service role)
-  constants/             estatusDinamica.ts, niveles.ts, municipios.ts
-  validations/           Schemas Zod (producto.ts, dinamica.ts, clienta.ts, comprobante.ts)
-  hooks/                 useUser.ts, useRole.ts
-  utils/                 dineroMxn.ts, formatearMensajeWP.ts, slugify.ts, sortearGanadora.ts
+  constants/             dinamicas.ts, municipios.ts, categorias.ts
+  validations/           Schemas Zod (producto.ts, dinamica.ts, clienta.ts, comprobante.ts, boleto.ts)
+  hooks/                 useDescargarImagenDinamica.ts
+  utils/                 dineroMxn.ts, slugify.ts
   prisma.ts              Singleton con proxy lazy
-  whatsapp.ts            Genera links wa.me/52{telefono} y envía link mágico
+  whatsapp.ts            Genera links wa.me/52{telefono}, normalización de teléfonos MX
   rate-limit.ts          Rate limiting en memoria por IP
   csrf.ts                Verifica header X-Requested-With
+  sanitize.ts            Strip HTML tags (reemplazo de isomorphic-dompurify)
+  api-response.ts        Helpers de respuesta API (apiOk, apiUnauthorized, apiServerError, etc.)
 
 components/
   ui/                    Primitivos shadcn (button, card, dialog, etc.)
   layout/                Sidebar.tsx, Header.tsx
   productos/             ProductoCard, GaleriaFotos, FormularioProducto
-  dinamicas/             DinamicaCard, ProgresoBoletos, SelectorNumero, HistorialGanadoras, AnimacionSorteo
+  dinamicas/             DinamicaCard, DinamicaDetalle, DinamicaImagenWhatsApp, FormularioDinamica
   clientas/              PerfilClienta, BadgeNivel, ContadorPuntos
   comprobantes/          UploaderComprobante, ValidadorComprobante (admin)
   publico/               Hero, FeedDinamicas, BotonWhatsApp, BannerPromocion
@@ -151,19 +154,19 @@ Single-tenant: todas las tablas pertenecen a ASHA implícitamente, no hay `organ
 - **ImagenProducto** — Foto del producto. `url`, `orden`. Cascade delete con Producto.
 
 ### Dinámicas (núcleo)
-- **Dinamica** — Una dinámica de boletos. `nombre`, `descripcion`, `tipo` (enum), `precioBoleto`, `totalBoletos`, `productoPremio` (relación opcional con Producto), `premioCustom` (string si no es del catálogo), `estatus` (enum), `inicioEn`, `cierreEn` (opcional, para express/flash), `seedGanadora` (string, semilla pública usada para sortear), `hashSeed` (hash SHA256 de la seed publicado al iniciar), `boletoGanador` (int, nullable hasta sortear), `clientaGanadoraId` (relación con Clienta, nullable). Relaciones: `Boleto[]`, `HistorialDinamica[]`.
-- **Boleto** — Un número dentro de una dinámica. `dinamicaId`, `numero` (int), `clientaId` (nullable hasta confirmar), `estatus` (enum: disponible/reservado/pendiente_validacion/confirmado/cancelado), `reservadoEn`, `confirmadoEn`, `comprobanteId` (nullable). **Compound unique `[dinamicaId, numero]`** — un número no puede repetirse en la misma dinámica.
+- **Dinamica** — Una dinámica de boletos. `nombre`, `descripcion`, `tipo` (enum), `precioBoleto`, `totalBoletos`, `productoPremio` (relación opcional con Producto), `premioCustom` (string si no es del catálogo), `imagenPremioUrl` (imagen del premio custom), `estatus` (enum), `inicioEn`, `cierreEn` (opcional, para express/flash), `seedGanadora` (string, semilla pública usada para sortear), `hashSeed` (hash SHA256 de la seed publicado al iniciar), `boletoGanador` (int, nullable hasta sortear), `clientaGanadoraId` (relación con Clienta, nullable), `esHistorico` (bool, dinámica previa al sistema verificable), `sorteadoEn`, `entregadoEn`. Relaciones: `Boleto[]`, `HistorialDinamica[]`.
+- **Boleto** — Un número dentro de una dinámica. `dinamicaId`, `numero` (int), `clientaId` (nullable hasta confirmar), `estatus` (enum: disponible/reservado/pendiente_validacion/confirmado/cancelacion_solicitada/cancelado), `nombreCliente` (para compra anónima), `telefonoCliente` (para compra anónima), `reservadoEn`, `confirmadoEn`, `canceladoEn`, `comprobanteId` (nullable). **Compound unique `[dinamicaId, numero]`** — un número no puede repetirse en la misma dinámica.
 - **Comprobante** — Comprobante de pago subido. `imagenUrl` (storage privado), `monto`, `metodoPago` (enum: transferencia/efectivo/oxxo), `referenciaPago` opcional, `estatus` (enum: pendiente/aprobado/rechazado), `validadoPor` (userId admin), `validadoEn`, `notas`. Relación con `Boleto`.
 - **HistorialDinamica** — Auditoría de cambios de estatus de la dinámica (estatusAnterior, estatusNuevo, userId, fecha).
 
 ### Clientas
 - **Clienta** — La usuaria final. `telefono` (unique, único requisito), `nombre`, `email` opcional, `direccion` opcional, `municipio` (enum), `puntos` (int), `nivelActual` (enum: BRONCE/PLATA/ORO), `referidaPor` (Clienta opcional), `userId` Supabase opcional (solo si decidió crear perfil con link mágico), `creadaEn`, `ultimaCompraEn`. Relación con `Boleto[]`, `Compra[]`, `Notificacion[]`.
-- **Compra** — Venta directa de productos del catálogo (no dinámicas). `clientaId`, `productoId`, `cantidad`, `precioUnitario`, `total`, `estatus` (enum: pendiente/pagado/entregado/cancelado), `comprobanteId` opcional, `direccionEntrega`.
+- **Compra** — Venta directa de productos del catálogo (no dinámicas). `clientaId`, `productoId`, `cantidad`, `precioUnitario`, `total`, `estatus` (enum: pendiente/pagado/listo_entrega/entregado/cancelado), `comprobanteId` opcional, `direccionEntrega`, `municipioEntrega`, `notasCliente`, `notasAdmin`, `entregadaEn`, `canceladaEn`.
 
 ### Cancelaciones
 - **SolicitudCancelacion** — Solicitud de cancelación de boleto o compra. `tipoOrigen` (enum: boleto/compra), `boletoId` (nullable), `compraId` (nullable), `clientaId`, `motivo` (texto), `estatus` (enum: pendiente/aprobada/rechazada), `revisadaPor` (userId admin, nullable), `revisadaEn` (nullable), `notasAdmin` (texto opcional), `montoDevolucion` (float, lo registra admin al aprobar), `metodoDevolucion` (enum: transferencia/efectivo/saldo_puntos, lo elige admin). Auditoría completa de devoluciones.
 
-### Fidelización (Fase 2)
+### Fidelización (Fase 3 — pendiente)
 - **MovimientoPuntos** — Auditoría de puntos: `clientaId`, `tipo` (gano/canjeo), `cantidad`, `motivo` (string), `referenciaTipo` (compra/dinamica/referido/manual), `referenciaId`.
 - **Reto** — Reto semanal. `nombre`, `descripcion`, `condicion` (json con la regla), `recompensaPuntos`, `inicioEn`, `cierreEn`, `activo`.
 - **ProgresoReto** — `clientaId`, `retoId`, `progreso` (int), `completado`, `completadoEn`.
@@ -173,7 +176,7 @@ Single-tenant: todas las tablas pertenecen a ASHA implícitamente, no hay `organ
 - **ConfiguracionSitio** — Configuración global del sitio (1 sola fila). Logo, colores primario/secundario, hero text, WhatsApp principal, info de contacto, secciones visibles. Editable por admin desde dashboard.
 
 ### Enums
-- **CategoriaProducto**: LABIALES, BASES, OJOS, RUBORES, BROCHAS, KITS, OTROS
+- **CategoriaProducto**: LABIALES, BASES, OJOS, RUBORES, BROCHAS, KITS, CUIDADO_PIEL, UNAS, OTROS
 - **TipoDinamica**: CLASICA, EXPRESS, VIP, FLASH, COMBO_SORPRESA, CAJA_SORPRESA, SUBASTA
 - **EstatusDinamica**: BORRADOR, ACTIVA, LLENA, GANADORA_SELECCIONADA, ENTREGADA, CANCELADA
 - **EstatusBoleto**: DISPONIBLE, RESERVADO, PENDIENTE_VALIDACION, CONFIRMADO, CANCELACION_SOLICITADA, CANCELADO
@@ -182,7 +185,7 @@ Single-tenant: todas las tablas pertenecen a ASHA implícitamente, no hay `organ
 - **MetodoDevolucion**: TRANSFERENCIA, EFECTIVO, SALDO_PUNTOS
 - **EstatusComprobante**: PENDIENTE, APROBADO, RECHAZADO
 - **MetodoPago**: TRANSFERENCIA, EFECTIVO, OXXO
-- **EstatusCompra**: PENDIENTE, PAGADO, ENTREGADO, CANCELADO
+- **EstatusCompra**: PENDIENTE, PAGADO, LISTO_ENTREGA, ENTREGADO, CANCELADO
 - **Municipio**: TONALA, ZAPOPAN, GUADALAJARA, TLAQUEPAQUE, OTRO
 - **NivelClienta**: BRONCE, PLATA, ORO
 - **TipoMovimientoPuntos**: GANO, CANJEO
@@ -215,7 +218,7 @@ Los roles se almacenan en `auth.users.user_metadata.role` de Supabase. **No hay 
 1. **Rutas públicas**: home, catálogo, dinámicas, detalle de dinámica, mi-perfil (con verificación de link mágico), checkout. Sin restricción.
 2. **Rutas admin**: `app/(dashboard)/layout.tsx` valida sesión + rol admin/operadora via `requireRole` (server component). Redirige a `/login` si no pasa.
 3. **Rutas solo admin**: configuración del sitio y métricas financieras validan `requireRole(["admin"])` en su propio `page.tsx`.
-4. **APIs públicas POST**: rate limit + CSRF + DOMPurify en cada endpoint.
+4. **APIs públicas POST**: rate limit + CSRF + `sanitize()` en cada endpoint.
 5. **Headers de seguridad**: configurados globalmente en `next.config.ts` vía `headers()` (X-Frame-Options, HSTS, etc.).
 
 ---
@@ -311,7 +314,7 @@ NEXT_PUBLIC_APP_NAME=ASHA
     ```
     `CANCELADA` puede ocurrir desde cualquier estado anterior a `GANADORA_SELECCIONADA`. No se permiten saltos.
 
-11. **Sanitización XSS**: Todos los inputs públicos (nombres, mensajes, comentarios) se sanitizan con DOMPurify antes de almacenar.
+11. **Sanitización XSS**: Todos los inputs públicos (nombres, mensajes, comentarios) se sanitizan con `sanitize()` (`lib/sanitize.ts`) antes de almacenar. Se usa strip de HTML tags sin dependencias externas (isomorphic-dompurify fue removido por incompatibilidad ESM en Vercel serverless).
 
 12. **Compra anónima permitida**: La clienta puede completar la compra de un boleto SIN crearse cuenta. Solo se le pide nombre + teléfono + dirección + comprobante. El registro con link mágico es opcional.
 
@@ -336,8 +339,7 @@ NEXT_PUBLIC_APP_NAME=ASHA
 - Monetarios: `Float` en Prisma, formateado con `Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" })`
 
 ### UI
-- Estilo visual: pendiente de definir con las socias (colores, logo, tipografía).
-- Mientras tanto: paleta neutral cálida (rosa palo / nude / dorado suave) hasta confirmar.
+- Estilo visual: identidad Makeup Asha definida. Paleta rosa/morado con dorado, fuentes serif para marca.
 - Botones grandes, contraste alto.
 - Tipografía legible en móvil (mínimo 16px en body).
 - Pocos pasos para comprar (máximo 3 clicks de catálogo a comprobante).
@@ -351,7 +353,7 @@ NEXT_PUBLIC_APP_NAME=ASHA
 - Respuestas exitosas: JSON del objeto creado/actualizado.
 - CSRF: `checkCsrf(request)` en todos los POST/PUT/DELETE públicos.
 - Rate limiting: `checkRateLimit(key, max, windowMs)` en endpoints públicos.
-- Sanitización: `DOMPurify.sanitize(input)` en todos los inputs de texto públicos.
+- Sanitización: `sanitize(input)` de `lib/sanitize.ts` en todos los inputs de texto.
 
 ### Prisma
 - `npx prisma db push` para desarrollo.
@@ -366,7 +368,7 @@ NEXT_PUBLIC_APP_NAME=ASHA
 ### A implementar desde día 1
 - **Role checks** en todos los endpoints admin (`getUserContext()` + validación de rol).
 - **IDOR protegido**: la clienta solo ve sus propios datos vía `userId`. Endpoints `mi-*` filtran por `userId` siempre.
-- **XSS**: DOMPurify en inputs públicos.
+- **XSS**: `sanitize()` (strip HTML tags) en inputs públicos.
 - **CSRF**: `X-Requested-With` header check en mutaciones.
 - **Rate limiting**: en memoria por IP en endpoints públicos.
 - **Comprobantes en bucket privado**: signed URLs con expiración corta para admin.
@@ -436,20 +438,27 @@ Lo más importante para que las socias puedan ordenar su negocio actual. **Sin d
 8. ✅ **Dashboard básico** — KPIs reales: ventas del mes, productos activos, clientas, comprobantes pendientes. Acciones requeridas con links contextuales. Lista de productos con stock bajo.
 9. ✅ **Configuración del sitio** — Solo admin (operadora bloqueada). Marca, colores con color picker, hero, contacto, redes sociales, texto legal. Cambios reflejados en frontend público.
 
-**Endpoints totales**: 28 rutas (16 públicas + 12 admin). Todos los admin con `requireRole`, todos los públicos con CSRF + rate limit + DOMPurify.
+**Endpoints totales**: 28 rutas (16 públicas + 12 admin). Todos los admin con `requireRole`, todos los públicos con CSRF + rate limit + `sanitize()`.
 
 **Buckets Storage**:
 - `productos-publico` (público, 5MB max, JPG/PNG/WebP/GIF)
 - `comprobantes-privado` (privado, 5MB max, JPG/PNG/WebP, signed URLs 10min)
 
-### Fase 2 — Dinámicas de boletos
-Una vez que catálogo y administración estén operando bien:
-1. **CRUD de dinámicas** (admin) — Crear, definir total de boletos, precio, premio (del catálogo o custom).
-2. **Página pública de dinámica** — Grid de números, disponibles vs ocupados, contador de progreso, urgencia.
-3. **Checkout de boletos** — Clienta elige uno o varios números, mismo flujo de checkout que catálogo.
-4. **Algoritmo de sorteo verificable** — Seed pública desde el inicio, hash SHA256, ejecutado por admin cuando esté llena.
-5. **Historial público de ganadoras** — Página pública con verificación criptográfica.
-6. **Sistema de cancelaciones** — Cola de solicitudes, aprobación con monto y método de devolución.
+### Fase 2 — Dinámicas de boletos ✅ COMPLETADA
+
+1. ✅ **CRUD de dinámicas** (admin) — Crear/editar/eliminar dinámicas, definir total de boletos, precio, premio (del catálogo o custom con imagen), tipos (Clásica, Express, VIP, Flash, etc.), transiciones de estatus validadas.
+2. ✅ **Página pública de dinámica** — Grid de números con colores por estatus, contador de progreso, urgencia, checkout integrado. `/dinamicas` lista activas, `/dinamicas/[id]` detalle con selección de números.
+3. ✅ **Checkout de boletos** — Clienta elige uno o varios números, ingresa datos + sube comprobante. Reserva atómica con timeout de 30 min. Compra anónima (sin registro).
+4. ✅ **Algoritmo de sorteo verificable** — Seed UUID generada al crear dinámica, hash SHA256 público desde el inicio, ejecutado por admin cuando todos los boletos están confirmados. Resultado auditable.
+5. ✅ **Historial público de ganadoras** — `/historial` con verificación criptográfica (hash, seed, número ganador). Accesible sin auth.
+6. ✅ **Sistema de cancelaciones** — `/dashboard/cancelaciones` con cola de solicitudes, aprobación/rechazo por admin, registro de monto y método de devolución. Boleto vuelve a disponible al aprobar.
+7. ✅ **Dinámicas históricas** — Soporte para dinámicas pre-sistema (flag `esHistorico`), asignación manual de ganadora sin sorteo criptográfico. Seed script para migrar datos desde Excel.
+8. ✅ **Imagen descargable para WhatsApp** — Botón "Descargar para WhatsApp" en detalle de dinámica admin. Genera JPG con grid de números (disponibles/apartados con nombre) usando `html-to-image` client-side. Template rosa/morado con branding ASHA, 1080px, pixel ratio 2x.
+
+**Notas técnicas de la ejecución:**
+- `isomorphic-dompurify` fue removido por incompatibilidad ESM/CJS en Vercel serverless (`require() of ES Module` error). Reemplazado con `lib/sanitize.ts` (strip HTML tags, cero dependencias).
+- `lucide-react` eliminó iconos de marcas (Facebook, Instagram). Reemplazados con SVG inline en FooterPublico.
+- Schema de Prisma debe mantenerse sincronizado con la BD de producción via `prisma db push`. Columnas faltantes causan `PrismaClientKnownRequestError` P2022 en runtime.
 
 ### Fase 3 — Retención
 - Registro de clientas con link mágico WhatsApp.
