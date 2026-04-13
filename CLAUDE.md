@@ -83,7 +83,7 @@ El negocio opera en zona gris frente a la Ley Federal de Juegos y Sorteos (SEGOB
 
 ## 4. Stack
 
-- **Framework**: Next.js 14+ (App Router, TypeScript)
+- **Framework**: Next.js 15.5 (App Router, TypeScript)
 - **DB**: PostgreSQL en Supabase, schema `public`
 - **ORM**: Prisma
 - **Auth**: Supabase Auth
@@ -211,11 +211,12 @@ Los roles se almacenan en `auth.users.user_metadata.role` de Supabase. **No hay 
 - Login tradicional con email + password en `/login`.
 - Cuentas creadas por script o por otro admin desde `/dashboard/usuarios`.
 
-### Middleware
-1. Rutas públicas: home, catálogo, dinámicas, detalle de dinámica, mi-perfil (con verificación de link mágico), checkout.
-2. Rutas admin: requieren rol admin u operadora.
-3. Rutas solo admin: configuración del sitio, métricas financieras, gestión de usuarios.
-4. APIs públicas POST: rate limit + CSRF + DOMPurify.
+### Protección de rutas (sin middleware — todo server-side)
+1. **Rutas públicas**: home, catálogo, dinámicas, detalle de dinámica, mi-perfil (con verificación de link mágico), checkout. Sin restricción.
+2. **Rutas admin**: `app/(dashboard)/layout.tsx` valida sesión + rol admin/operadora via `requireRole` (server component). Redirige a `/login` si no pasa.
+3. **Rutas solo admin**: configuración del sitio y métricas financieras validan `requireRole(["admin"])` en su propio `page.tsx`.
+4. **APIs públicas POST**: rate limit + CSRF + DOMPurify en cada endpoint.
+5. **Headers de seguridad**: configurados globalmente en `next.config.ts` vía `headers()` (X-Frame-Options, HSTS, etc.).
 
 ---
 
@@ -402,7 +403,7 @@ NEXT_PUBLIC_APP_NAME=ASHA
 ## 14. Plan de fases
 
 ### Fase 0 — Setup ✅ COMPLETADA
-- ✅ Next.js 16.2.3 + React 19 + TypeScript + App Router
+- ✅ Next.js 15.5 + React 19 + TypeScript + App Router
 - ✅ Tailwind 4 + shadcn/ui (Base UI) + 9 componentes base
 - ✅ Prisma 6.19 conectado a Supabase Postgres
 - ✅ Schema con 6 tablas + 6 enums (Producto, ImagenProducto, Clienta, Compra, Comprobante, ConfiguracionSitio)
@@ -410,20 +411,22 @@ NEXT_PUBLIC_APP_NAME=ASHA
 - ✅ Constantes: municipios, categorías
 - ✅ Layout público (Header + Footer + Home), layout dashboard (Sidebar + Home), layout auth con /login placeholder
 - ✅ Endpoint /api/health validando conexión Supabase end-to-end
-- ✅ proxy.ts con headers de seguridad + protección de rutas /dashboard por rol
+- ✅ Headers de seguridad via `next.config.ts` `headers()` + protección de rutas /dashboard via `(dashboard)/layout.tsx` server component con `requireRole`
 - ✅ Build de producción sin errores ni warnings
-- ⏳ GitHub remote + Vercel deploy (requiere acción manual del usuario, no bloquea Fase 1)
+- ✅ GitHub remote + Vercel deploy en `https://asha-makeup.vercel.app`
 
 **Notas técnicas de la ejecución:**
 - Prisma 7 introdujo breaking changes (config movió a `prisma.config.ts` con driver adapters). Se bajó a Prisma 6 estable.
 - Tailwind 4 usa config CSS-based, no archivo JS.
 - shadcn/ui ahora usa Base UI en lugar de Radix. `asChild` ya no aplica — usar `buttonVariants()` con `Link` directamente.
-- Next.js 16 deprecó `middleware.ts`. Ahora se usa `proxy.ts` con función `proxy()`.
+- Next.js 16 era incompatible con Vercel (output format no reconocido, `proxy.ts` no soportado en edge, `__dirname` no definido en ESM). Se bajó a Next.js 15.5 estable.
+- **Sin middleware**: se eliminó `middleware.ts` porque `@supabase/ssr` crasheaba en edge runtime de Vercel. Headers de seguridad se configuran en `next.config.ts` vía `headers()`. Auth del dashboard se verifica en `app/(dashboard)/layout.tsx` como server component (Node runtime).
+- **Vercel**: Framework Preset debe ser "Next.js" (no "Other"). `DATABASE_URL` debe usar el pooler (`pooler.supabase.com:6543`), `DIRECT_URL` usa el host directo (`db.xxx.supabase.co:5432`).
 
 ### Fase 1 — Catálogo y administración base ✅ COMPLETADA
 Lo más importante para que las socias puedan ordenar su negocio actual. **Sin dinámicas todavía**.
 
-1. ✅ **Auth admin/operadora** — Login email+password con Supabase Auth, middleware de roles via proxy.ts, logout, script `crear-admin.ts` para alta manual.
+1. ✅ **Auth admin/operadora** — Login email+password con Supabase Auth, protección de rutas dashboard via layout server component con `requireRole`, logout, script `crear-admin.ts` para alta manual.
 2. ✅ **CRUD de productos** — Crear/editar/eliminar/listar productos, upload múltiple a Supabase Storage (`productos-publico`), categorías, stock, activo/inactivo, destacado, soft-delete si tiene compras asociadas.
 3. ✅ **Catálogo público** — `/catalogo` con grid responsive, filtros por categoría, búsqueda, badges (destacado, agotado, stock bajo). `/catalogo/[id]` con galería interactiva.
 4. ✅ **CRUD de clientas** — Lista con búsqueda, alta manual, edición, vista de detalle con compras, total gastado, puntos, niveles.

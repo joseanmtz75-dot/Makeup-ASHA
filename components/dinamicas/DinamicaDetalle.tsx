@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Clock,
   MessageCircle,
+  Download,
 } from "lucide-react";
 import { formatearMxn } from "@/lib/utils/dineroMxn";
 import {
@@ -28,6 +29,8 @@ import {
 } from "@/lib/constants/dinamicas";
 import { generarLinkWhatsApp } from "@/lib/whatsapp";
 import { cn } from "@/lib/utils";
+import { DinamicaImagenWhatsApp } from "@/components/dinamicas/DinamicaImagenWhatsApp";
+import { useDescargarImagenDinamica } from "@/lib/hooks/useDescargarImagenDinamica";
 import type { EstatusDinamica, EstatusBoleto, TipoDinamica } from "@prisma/client";
 
 type BoletoAdmin = {
@@ -99,6 +102,8 @@ export function DinamicaDetalle({ dinamica }: { dinamica: DinamicaFull }) {
   const [isPending, startTransition] = useTransition();
   const [accion, setAccion] = useState<string>("");
   const [ganadoraBoletoId, setGanadoraBoletoId] = useState<string>("");
+  const imagenRef = useRef<HTMLDivElement>(null);
+  const { generando, descargar } = useDescargarImagenDinamica();
 
   const boletosConfirmados = dinamica.boletos.filter(
     (b) => b.estatus === "CONFIRMADO"
@@ -243,7 +248,27 @@ export function DinamicaDetalle({ dinamica }: { dinamica: DinamicaFull }) {
           )}
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {["ACTIVA", "LLENA", "GANADORA_SELECCIONADA", "ENTREGADA"].includes(dinamica.estatus) && (
+            <Button
+              variant="outline"
+              onClick={() =>
+                descargar(
+                  imagenRef,
+                  `dinamica-${dinamica.nombre.toLowerCase().replace(/\s+/g, "-")}`
+                )
+              }
+              disabled={generando}
+              className="border-green-600 text-green-700 hover:bg-green-50"
+            >
+              {generando ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              {generando ? "Generando..." : "Descargar para WhatsApp"}
+            </Button>
+          )}
           {dinamica.estatus === "LLENA" && (
             <Button
               onClick={() => handleAccion("sortear")}
@@ -611,6 +636,23 @@ export function DinamicaDetalle({ dinamica }: { dinamica: DinamicaFull }) {
           </CardContent>
         </Card>
       )}
+
+      {/* Template oculto para generar imagen de WhatsApp */}
+      <div style={{ position: "fixed", left: -9999, top: 0, zIndex: -1 }}>
+        <DinamicaImagenWhatsApp
+          ref={imagenRef}
+          nombre={dinamica.nombre}
+          tipo={dinamica.tipo}
+          precioBoleto={dinamica.precioBoleto}
+          totalBoletos={dinamica.totalBoletos}
+          premio={premio}
+          boletos={dinamica.boletos.map((b) => ({
+            numero: b.numero,
+            estatus: b.estatus,
+            nombreComprador: b.clienta?.nombre ?? b.nombreCliente ?? null,
+          }))}
+        />
+      </div>
     </div>
   );
 }
