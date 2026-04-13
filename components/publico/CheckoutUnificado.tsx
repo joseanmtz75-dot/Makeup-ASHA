@@ -140,6 +140,10 @@ export function CheckoutUnificado(props: Props) {
   }
 
   async function subirComprobante(file: File) {
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("La imagen es muy grande (máximo 5MB)");
+      return;
+    }
     setSubiendo(true);
     try {
       const formData = new FormData();
@@ -280,11 +284,20 @@ export function CheckoutUnificado(props: Props) {
               <Input
                 id="ck-tel"
                 type="tel"
+                inputMode="numeric"
                 value={telefono}
-                onChange={(e) => setTelefono(e.target.value)}
+                onChange={(e) => {
+                  const soloDigitos = e.target.value.replace(/\D/g, "").slice(0, 10);
+                  setTelefono(soloDigitos);
+                }}
                 placeholder="3312345678"
-                maxLength={15}
+                maxLength={10}
               />
+              {telefono.length > 0 && telefono.length < 10 && (
+                <p className="text-xs text-muted-foreground">
+                  {telefono.length}/10 dígitos
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">

@@ -5,6 +5,7 @@ export const MunicipioEnum = z.enum([
   "ZAPOPAN",
   "GUADALAJARA",
   "TLAQUEPAQUE",
+  "OTRO",
 ]);
 
 export const MetodoPagoEnum = z.enum(["TRANSFERENCIA", "EFECTIVO", "OXXO"]);

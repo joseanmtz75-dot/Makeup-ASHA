@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { MUNICIPIOS_LABEL } from "@/lib/constants/municipios";
 import { formatearMxn } from "@/lib/utils/dineroMxn";
-import { ArrowLeft, Pencil, Phone, Mail, MapPin, ShoppingBag, Award } from "lucide-react";
+import { ArrowLeft, Pencil, Phone, Mail, MapPin, ShoppingBag, Award, Users } from "lucide-react";
 
 export const metadata = { title: "Detalle de clienta" };
 
@@ -66,7 +66,7 @@ export default async function DetalleClientaPage({
         </Link>
       </div>
 
-      <div className="mb-6 grid gap-4 md:grid-cols-3">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -104,6 +104,20 @@ export default async function DetalleClientaPage({
             <div className="flex items-center gap-2 text-2xl font-bold">
               <Award className="h-5 w-5 text-primary" />
               {clienta.puntos}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Referidas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2 text-2xl font-bold">
+              <Users className="h-5 w-5 text-primary" />
+              {clienta._count.referidas}
             </div>
           </CardContent>
         </Card>
