@@ -11,7 +11,7 @@ import {
   apiServerError,
 } from "@/lib/api-response";
 import { ZodError } from "zod";
-import DOMPurify from "isomorphic-dompurify";
+import { sanitize } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +41,7 @@ export async function PUT(
 
   try {
     const body = await request.json();
-    if (body.notasAdmin) body.notasAdmin = DOMPurify.sanitize(body.notasAdmin);
+    if (body.notasAdmin) body.notasAdmin = sanitize(body.notasAdmin);
 
     const data = updateSchema.parse(body);
 

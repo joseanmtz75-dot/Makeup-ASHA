@@ -10,7 +10,7 @@ import {
   apiBadRequest,
 } from "@/lib/api-response";
 import { ZodError } from "zod";
-import DOMPurify from "isomorphic-dompurify";
+import { sanitize } from "@/lib/sanitize";
 import { generarSeed, hashearSeed } from "@/lib/utils/sortearGanadora";
 
 export const dynamic = "force-dynamic";
@@ -70,11 +70,11 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    if (body.nombre) body.nombre = DOMPurify.sanitize(body.nombre);
+    if (body.nombre) body.nombre = sanitize(body.nombre);
     if (body.descripcion)
-      body.descripcion = DOMPurify.sanitize(body.descripcion);
+      body.descripcion = sanitize(body.descripcion);
     if (body.premioCustom)
-      body.premioCustom = DOMPurify.sanitize(body.premioCustom);
+      body.premioCustom = sanitize(body.premioCustom);
 
     const data = dinamicaCreateSchema.parse(body);
 

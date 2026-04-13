@@ -11,7 +11,7 @@ import {
 import { checkCsrf, csrfError } from "@/lib/csrf";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { ZodError } from "zod";
-import DOMPurify from "isomorphic-dompurify";
+import { sanitize } from "@/lib/sanitize";
 import { RESERVA_TIMEOUT_MINUTOS } from "@/lib/constants/dinamicas";
 
 export const dynamic = "force-dynamic";
@@ -32,10 +32,10 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    if (body.nombre) body.nombre = DOMPurify.sanitize(body.nombre);
-    if (body.direccion) body.direccion = DOMPurify.sanitize(body.direccion);
+    if (body.nombre) body.nombre = sanitize(body.nombre);
+    if (body.direccion) body.direccion = sanitize(body.direccion);
     if (body.referenciaPago)
-      body.referenciaPago = DOMPurify.sanitize(body.referenciaPago);
+      body.referenciaPago = sanitize(body.referenciaPago);
 
     const data = reservarBoletosSchema.parse(body);
 

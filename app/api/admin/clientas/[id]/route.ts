@@ -11,7 +11,7 @@ import {
   apiBadRequest,
 } from "@/lib/api-response";
 import { ZodError } from "zod";
-import DOMPurify from "isomorphic-dompurify";
+import { sanitize } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -57,11 +57,11 @@ export async function PUT(
   try {
     const body = await request.json();
 
-    if (body.nombre) body.nombre = DOMPurify.sanitize(body.nombre);
-    if (body.direccion) body.direccion = DOMPurify.sanitize(body.direccion);
+    if (body.nombre) body.nombre = sanitize(body.nombre);
+    if (body.direccion) body.direccion = sanitize(body.direccion);
     if (body.referenciaDir)
-      body.referenciaDir = DOMPurify.sanitize(body.referenciaDir);
-    if (body.notas) body.notas = DOMPurify.sanitize(body.notas);
+      body.referenciaDir = sanitize(body.referenciaDir);
+    if (body.notas) body.notas = sanitize(body.notas);
 
     const data = clientaUpdateSchema.parse(body);
 

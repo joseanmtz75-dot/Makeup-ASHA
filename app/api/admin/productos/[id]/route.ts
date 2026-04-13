@@ -11,7 +11,7 @@ import {
   apiBadRequest,
 } from "@/lib/api-response";
 import { ZodError } from "zod";
-import DOMPurify from "isomorphic-dompurify";
+import { sanitize } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -57,9 +57,9 @@ export async function PUT(
   try {
     const body = await request.json();
 
-    if (body.nombre) body.nombre = DOMPurify.sanitize(body.nombre);
-    if (body.descripcion) body.descripcion = DOMPurify.sanitize(body.descripcion);
-    if (body.sku) body.sku = DOMPurify.sanitize(body.sku);
+    if (body.nombre) body.nombre = sanitize(body.nombre);
+    if (body.descripcion) body.descripcion = sanitize(body.descripcion);
+    if (body.sku) body.sku = sanitize(body.sku);
 
     const data = productoUpdateSchema.parse(body);
 

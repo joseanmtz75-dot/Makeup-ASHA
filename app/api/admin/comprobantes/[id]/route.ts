@@ -11,7 +11,7 @@ import {
   apiServerError,
 } from "@/lib/api-response";
 import { ZodError } from "zod";
-import DOMPurify from "isomorphic-dompurify";
+import { sanitize } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +45,7 @@ export async function PUT(
   try {
     const body = await request.json();
     if (body.notasValidacion)
-      body.notasValidacion = DOMPurify.sanitize(body.notasValidacion);
+      body.notasValidacion = sanitize(body.notasValidacion);
 
     const data = validarSchema.parse(body);
 

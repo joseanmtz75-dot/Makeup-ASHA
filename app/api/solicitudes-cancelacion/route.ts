@@ -11,7 +11,7 @@ import {
 import { checkCsrf, csrfError } from "@/lib/csrf";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { ZodError } from "zod";
-import DOMPurify from "isomorphic-dompurify";
+import { sanitize } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    if (body.motivo) body.motivo = DOMPurify.sanitize(body.motivo);
+    if (body.motivo) body.motivo = sanitize(body.motivo);
 
     const data = solicitudCancelacionSchema.parse(body);
 

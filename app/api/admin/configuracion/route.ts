@@ -11,7 +11,7 @@ import {
   apiServerError,
 } from "@/lib/api-response";
 import { ZodError } from "zod";
-import DOMPurify from "isomorphic-dompurify";
+import { sanitize } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +48,7 @@ export async function PUT(request: NextRequest) {
       "textoLegal",
     ];
     for (const campo of camposTexto) {
-      if (body[campo]) body[campo] = DOMPurify.sanitize(body[campo]);
+      if (body[campo]) body[campo] = sanitize(body[campo]);
     }
 
     const data = configuracionSchema.parse(body);

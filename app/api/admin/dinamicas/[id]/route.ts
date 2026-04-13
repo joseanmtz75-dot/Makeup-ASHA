@@ -11,7 +11,7 @@ import {
   apiBadRequest,
 } from "@/lib/api-response";
 import { ZodError } from "zod";
-import DOMPurify from "isomorphic-dompurify";
+import { sanitize } from "@/lib/sanitize";
 import { TRANSICIONES_DINAMICA } from "@/lib/constants/dinamicas";
 import type { EstatusDinamica } from "@prisma/client";
 
@@ -89,11 +89,11 @@ export async function PUT(
   try {
     const body = await request.json();
 
-    if (body.nombre) body.nombre = DOMPurify.sanitize(body.nombre);
+    if (body.nombre) body.nombre = sanitize(body.nombre);
     if (body.descripcion)
-      body.descripcion = DOMPurify.sanitize(body.descripcion);
+      body.descripcion = sanitize(body.descripcion);
     if (body.premioCustom)
-      body.premioCustom = DOMPurify.sanitize(body.premioCustom);
+      body.premioCustom = sanitize(body.premioCustom);
 
     // Detectar si es un cambio de estatus
     const nuevoEstatus = body.estatus as EstatusDinamica | undefined;
