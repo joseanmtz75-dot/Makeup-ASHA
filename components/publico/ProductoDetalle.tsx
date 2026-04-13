@@ -8,7 +8,7 @@ import { CATEGORIAS_LABEL } from "@/lib/constants/categorias";
 import { formatearMxn } from "@/lib/utils/dineroMxn";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { CheckoutDialog } from "@/components/publico/CheckoutDialog";
+import { CheckoutUnificado } from "@/components/publico/CheckoutUnificado";
 import { Package, ArrowLeft, ShoppingCart, MessageCircle } from "lucide-react";
 import { normalizarTelefonoMx } from "@/lib/whatsapp";
 
@@ -132,7 +132,8 @@ export function ProductoDetalle({ producto, whatsapp }: Props) {
                 Agotado
               </Button>
             ) : (
-              <CheckoutDialog
+              <CheckoutUnificado
+                tipo="producto"
                 producto={producto}
                 trigger={
                   <Button size="lg">

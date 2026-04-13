@@ -21,7 +21,7 @@ import {
 import { formatearMxn } from "@/lib/utils/dineroMxn";
 import { TIPO_DINAMICA_LABEL } from "@/lib/constants/dinamicas";
 import { cn } from "@/lib/utils";
-import { CheckoutBoletos } from "./CheckoutBoletos";
+import { CheckoutUnificado } from "./CheckoutUnificado";
 import type { TipoDinamica, EstatusDinamica, EstatusBoleto } from "@prisma/client";
 
 type BoletoPublico = {
@@ -344,14 +344,14 @@ export function DinamicaPublica({ dinamica }: { dinamica: DinamicaData }) {
       )}
 
       {/* Dialog de checkout */}
-      <CheckoutBoletos
+      <CheckoutUnificado
+        tipo="boleto"
         open={checkoutAbierto}
         onClose={() => setCheckoutAbierto(false)}
         dinamicaId={dinamica.id}
         dinamicaNombre={dinamica.nombre}
         numeros={seleccionados}
         precioBoleto={dinamica.precioBoleto}
-        total={total}
       />
     </div>
   );

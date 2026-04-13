@@ -14,8 +14,10 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen w-full">
-      <SidebarDashboard />
-      <main className="flex-1 overflow-auto bg-muted/20">{children}</main>
+      <SidebarDashboard role={ctx.role as "admin" | "operadora"} />
+      <main className="flex-1 overflow-auto bg-muted/20 pt-14 md:pt-0">
+        {children}
+      </main>
     </div>
   );
 }

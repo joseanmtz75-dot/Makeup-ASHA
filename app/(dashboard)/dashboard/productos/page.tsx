@@ -5,17 +5,32 @@ import { redirect } from "next/navigation";
 import { buttonVariants } from "@/components/ui/button";
 import { Plus, Package } from "lucide-react";
 import { ProductosTable } from "@/components/productos/ProductosTable";
+import { Pagination } from "@/components/ui/pagination";
 
 export const metadata = { title: "Productos" };
 
-export default async function ProductosPage() {
+const PAGE_SIZE = 25;
+
+export default async function ProductosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const ctx = await requireRole(["admin", "operadora"]);
   if (!ctx) redirect("/login?redirect=/dashboard/productos");
 
-  const productos = await prisma.producto.findMany({
-    include: { imagenes: { orderBy: { orden: "asc" }, take: 1 } },
-    orderBy: { creadoEn: "desc" },
-  });
+  const { page: pageStr } = await searchParams;
+  const page = Math.max(1, Number(pageStr) || 1);
+
+  const [productos, total] = await Promise.all([
+    prisma.producto.findMany({
+      include: { imagenes: { orderBy: { orden: "asc" }, take: 1 } },
+      orderBy: { creadoEn: "desc" },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+    prisma.producto.count(),
+  ]);
 
   return (
     <div className="container mx-auto p-6">
@@ -26,8 +41,7 @@ export default async function ProductosPage() {
             Productos
           </h1>
           <p className="text-sm text-muted-foreground">
-            {productos.length}{" "}
-            {productos.length === 1 ? "producto" : "productos"} en el catálogo
+            {total} {total === 1 ? "producto" : "productos"} en el catálogo
           </p>
         </div>
 
@@ -43,6 +57,7 @@ export default async function ProductosPage() {
       </div>
 
       <ProductosTable productos={productos} esAdmin={ctx.role === "admin"} />
+      <Pagination total={total} pageSize={PAGE_SIZE} currentPage={page} />
     </div>
   );
 }
