@@ -26,10 +26,12 @@ export default async function CatalogoPage({
       stock: true,
       categoria: true,
       destacado: true,
+      descripcion: true,
+      variantes: true,
       imagenes: {
         select: { url: true },
         orderBy: { orden: "asc" },
-        take: 1,
+        take: 5,
       },
     },
     orderBy: [{ destacado: "desc" }, { creadoEn: "desc" }],
@@ -38,9 +40,11 @@ export default async function CatalogoPage({
   return (
     <div className="container mx-auto px-4 py-10">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold">Catálogo</h1>
-        <p className="text-muted-foreground">
-          Maquillaje accesible para todas, entrega en Tonalá, Zapopan,
+        <h1 className="font-serif text-4xl italic font-bold text-primary">
+          Catálogo
+        </h1>
+        <p className="mt-1 text-foreground/60">
+          Maquillaje accesible para todas. Entrega en Tonalá, Zapopan,
           Guadalajara y Tlaquepaque.
         </p>
       </div>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Playfair_Display } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -13,10 +14,17 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const playfair = Playfair_Display({
+  variable: "--font-playfair",
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  style: ["normal", "italic"],
+});
+
 export const metadata: Metadata = {
   title: {
-    default: "ASHA — Maquillaje y promociones",
-    template: "%s | ASHA",
+    default: "Makeup Asha — Tu glow empieza aquí",
+    template: "%s | Makeup Asha",
   },
   description:
     "Maquillaje accesible, dinámicas con números de la suerte y promociones exclusivas en Tonalá, Zapopan, Guadalajara y Tlaquepaque.",
@@ -34,7 +42,7 @@ export default function RootLayout({
   return (
     <html
       lang="es-MX"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {children}
