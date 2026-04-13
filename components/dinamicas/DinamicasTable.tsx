@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
+import { useState, useEffect, useTransition, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -60,6 +60,10 @@ export function DinamicasTable({ dinamicas: inicial, esAdmin }: Props) {
     "TODAS"
   );
   const [, startTransition] = useTransition();
+
+  useEffect(() => {
+    setDinamicas(inicial);
+  }, [inicial]);
 
   const filtradas = useMemo(() => {
     return dinamicas.filter((d) => {

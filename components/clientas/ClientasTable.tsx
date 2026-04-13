@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { Clienta, NivelClienta } from "@prisma/client";
 import { MUNICIPIOS_LABEL } from "@/lib/constants/municipios";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +36,10 @@ export function ClientasTable({
   const [clientas, setClientas] = useState(clientasIniciales);
   const [search, setSearch] = useState("");
   const [, startTransition] = useTransition();
+
+  useEffect(() => {
+    setClientas(clientasIniciales);
+  }, [clientasIniciales]);
 
   const filtradas = clientas.filter((c) => {
     if (!search) return true;

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { Producto, ImagenProducto } from "@prisma/client";
 import { formatearMxn } from "@/lib/utils/dineroMxn";
 import { CATEGORIAS_LABEL } from "@/lib/constants/categorias";
@@ -24,6 +24,11 @@ export function ProductosTable({
   const [productos, setProductos] = useState(productosIniciales);
   const [search, setSearch] = useState("");
   const [, startTransition] = useTransition();
+
+  // Sincronizar cuando el server pasa nuevos productos (ej. paginación)
+  useEffect(() => {
+    setProductos(productosIniciales);
+  }, [productosIniciales]);
 
   const filtrados = productos.filter((p) => {
     if (!search) return true;
